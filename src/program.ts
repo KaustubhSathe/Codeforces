@@ -4,6 +4,45 @@ import * as vscode from "vscode";
 import * as puppeteer from "puppeteer";
 import axios from "axios";
 let browser:puppeteer.Browser|null = null,page:puppeteer.Page|null = null;
+const problemTags = [
+    "2-sat",
+    "binary search",
+    "bitmasks",
+    "brute force",
+    "chinese remainder theorem",
+    "combinatorics",
+    "constructive algorithms",
+    "data structures",
+    "dfs and similar",
+    "divide and conquer",
+    "dp",
+    "dsu",
+    "expression parsing",
+    "fft",
+    "flows",
+    "games",
+    "geometry",
+    "graph matchings",
+    "graphs",
+    "greedy",
+    "hashing",
+    "implementation",
+    "interactive",
+    "math",
+    "matrices",
+    "meet-in-the-middle",
+    "number theory",
+    "probabilities",
+    "schedules",
+    "shortest paths",
+    "sortings",
+    "string suffix structures",
+    "strings",
+    "ternary search",
+    "trees",
+    "two pointers"
+];
+
 /*-----------------------------Puppeteer Stuff-----------------------------*/
 const initPuppeteer = async () => {
     browser = await puppeteer.launch({headless:true});
@@ -71,7 +110,7 @@ const verify = (input : string|undefined): boolean => {
 class Problem extends vscode.TreeItem{
     constructor(
         public readonly label:string,
-        private rating:Number|null,
+        private difficulty:Number|null,
         private userSubmissions:Number|null,
         private problemID:string,
         private tags:string[],
@@ -81,13 +120,13 @@ class Problem extends vscode.TreeItem{
     }
 
     get tooltip(): string{
-        if(this.rating === null) {return "";}
+        if(this.difficulty === null) {return "";}
         return `${this.tags}`;
     }
 
     get description(): string{
-        if(this.rating === null) {return "";}
-        return `Difficulty: ${this.rating} | Solved Count: ${this.userSubmissions}`;
+        if(this.difficulty === null) {return "";}
+        return `Difficulty: ${this.difficulty} | Solved Count: ${this.userSubmissions}`;
     }  
 }
 
@@ -98,52 +137,56 @@ class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
     getTreeItem(element: Problem): vscode.TreeItem | Thenable<vscode.TreeItem> {
         return element;    
     }
+    
     getChildren(element?: Problem | undefined): vscode.ProviderResult<Problem[]> {
         if(element){
-            return Promise.resolve(this.getProblems(element.label));
+            if(element.label === "All"){
+                return this.getProblemsByTag("");
+            }else if(element.label === "Difficulty"){
+                return this.getDifficulties();
+            }else if(element.label === "Tags"){
+                return this.getTags();
+            }else if(element.label === "Favorites"){
+                return [];
+            }else {
+                if(problemTags.includes(element.label)){
+                    return this.getProblemsByTag(element.label);
+                }else if(parseInt(element.label) >= 800 && parseInt(element.label) <= 3500){
+                    return this
+                }
+
+            }
         }else{
             return Promise.resolve([
-                new Problem("2-sat",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("binary search",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("bitmasks",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("brute force",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("chinese remainder theorem",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("combinatorics",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("constructive algorithms",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("data structures",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("dfs and similar",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("divide and conquer",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("dp",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("dsu",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("expression parsing",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("fft",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("flows",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("games",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("geometry",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("graph matchings",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("graphs",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("greedy",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("hashing",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("implementation",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("interactive",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("math",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("matrices",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("meet-in-the-middle",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("number theory",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("probabilities",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("schedules",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("shortest paths",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("sortings",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("string suffix structures",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("strings",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("ternary search",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("trees",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("two pointers",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed)
+                new Problem("All",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
+                new Problem("Difficulty",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
+                new Problem("Tags",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
+                new Problem("Favorites",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
             ]);
         }
     }
+    private getTags = async (): Promise<Problem[]> => {
+        let returnTags:Problem[] = [];
+        problemTags.forEach(elem => {
+            returnTags.push(new Problem(elem,null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed));
+        });
 
-    private getProblems = async (tag: string):Promise<Problem[]> =>{
+        return Promise.resolve(returnTags);
+    }
+    private getDifficulties = async (): Promise<Problem[]> => {
+        let returnDifficulties:Problem[] = [];
+        for(let i = 800;i<=3500;i+=100){
+            returnDifficulties.push(new Problem(i.toString(),null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed));
+        }
+        return Promise.resolve(returnDifficulties);
+    }
+    private getProblemByDifficulty = async (difficultyRating: number):Promise<Problem[]> => {
+        const firstPage = await axios.get(`https://codeforces.com/problemset?tags=${difficultyRating}-${difficultyRating}`);
+        // const 
+        
+        return [];
+    }
+    private getProblemsByTag = async (tag: string):Promise<Problem[]> =>{
         let returnValue = [];
         let fetchData = (await axios.get(`https://codeforces.com/api/problemset.problems?tags=${encodeURI(tag)}`)).data.result;
         let problems:Array<ProblemData> = fetchData.problems;
@@ -159,9 +202,7 @@ class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
                 vscode.TreeItemCollapsibleState.None
             ));
         }
-
         return returnValue;
-        
     }
 }
 

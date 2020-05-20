@@ -6,6 +6,7 @@
 	"engines": {
 		"vscode": "^1.45.0"
 	},
+	"publisher": "KaustubhSathe",
 	"categories": [
 		"Other"
 	],
