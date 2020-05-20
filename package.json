@@ -10,7 +10,8 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:cpsolver.cfSignIn"
+		"onCommand:cpsolver.cfSignIn",
+		"onView:codeforces"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -19,7 +20,24 @@
 				"command": "cpsolver.cfSignIn",
 				"title": "CPSolver : Codeforces Sign-In"
 			}
-		]
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "problems-explorer",
+					"title": "Problems Explorer",
+					"icon" : "./media/icon.svg"
+				}
+			]
+		},
+		"views": {
+			"problems-explorer": [
+				{
+					"id": "codeforces",
+					"name": "Codeforces Problems"
+				}
+			]
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
@@ -44,6 +62,7 @@
 	},
 	"dependencies": {
 		"@types/puppeteer": "^2.1.0",
+		"axios": "^0.19.2",
 		"puppeteer": "^3.1.0",
 		"ts-node": "^8.10.1"
 	}

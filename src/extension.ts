@@ -1,9 +1,12 @@
 import * as vscode from 'vscode';
-import {cfDisposable} from "./program";
+import {cfSignInFlow,problemBar} from "./program";
 
 export function activate(context: vscode.ExtensionContext) {
-		
-	context.subscriptions.push(cfDisposable);
+	
+	context.subscriptions.push(
+		cfSignInFlow,
+		problemBar
+	);
 }
 
 
