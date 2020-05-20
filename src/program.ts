@@ -1,3 +1,4 @@
+/*-----------------------------Imports-----------------------------*/
 import {cf_user_name,cf_pass,sp_user_name,sp_pass,setCF,setSP} from "./userInfo";
 import * as vscode from "vscode";
 import * as puppeteer from "puppeteer";
@@ -34,7 +35,7 @@ const signInCF = async (username:string,password:string) : Promise<boolean> => {
 /*-----------------------------Codeforces Sign In-----------------------------*/
 export const cfDisposable = vscode.commands.registerCommand("cpsolver.cfSignIn",async () => {
     if(cf_user_name !== null){
-        vscode.window.showInformationMessage("Signed in as "+cf_user_name+". If you want to change then please type ahead.");
+        vscode.window.showInformationMessage("Already Signed in as "+cf_user_name+". If you want to change then please type ahead.");
     }
     while(true){
         let input: string|undefined = await vscode.window.showInputBox({placeHolder:"Please enter your codeforces username and password SPACE SEPERATED"});
@@ -44,12 +45,12 @@ export const cfDisposable = vscode.commands.registerCommand("cpsolver.cfSignIn",
         }else{
             input = input as string;
             const [username,password] = input.split(" ");
-            setCF(username,password);
             const ok:boolean = await signInCF(username,password);
             if(!ok){
                 vscode.window.showErrorMessage("Wrong Username or Password entered! Please try again.");
                 continue;
             }
+            setCF(username,password);
             vscode.window.showInformationMessage("Succesfully signed in as : " + username);
             break;
         }

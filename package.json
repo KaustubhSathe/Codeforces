@@ -10,8 +10,7 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:cpsolver.cfSignIn",
-		"onCommand:cpsolver.spSignIn"
+		"onCommand:cpsolver.cfSignIn"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -19,10 +18,6 @@
 			{
 				"command": "cpsolver.cfSignIn",
 				"title": "CPSolver : Codeforces Sign-In"
-			},
-			{
-				"command": "cpsolver.spSignIn",
-				"title": "CPSolver : Spoj Sign-In"
 			}
 		]
 	},
