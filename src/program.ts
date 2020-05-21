@@ -111,8 +111,8 @@ const verify = (input : string|undefined): boolean => {
 class Problem extends vscode.TreeItem{
     constructor(
         public readonly label:string,
-        private difficulty:Number|null,
-        private userSubmissions:Number|null,
+        private difficulty:number|null,
+        private userSubmissions:number|null,
         private problemID:string,
         private tags:string[],
         public readonly collapsibleState: vscode.TreeItemCollapsibleState 
@@ -126,7 +126,12 @@ class Problem extends vscode.TreeItem{
     }
 
     get description(): string{
-        if(this.difficulty === null) {return "";}
+        if(this.difficulty === null) {
+            return "";
+        }
+        if(isNaN(this.difficulty)){
+            return `Solved Count: ${this.userSubmissions}`;    
+        }
         return `Difficulty: ${this.difficulty} | Solved Count: ${this.userSubmissions}`;
     }  
 }
@@ -181,6 +186,7 @@ class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
     private getFavoriteProblems = async ():Promise<Problem[]> => {
         page = page as puppeteer.Page;
         await page.goto("https://codeforces.com/favourite/problems");
+        
         let bodyHTML = await page.evaluate(() => document.body.innerHTML);
         return this.retrieveProblemsFromPage(bodyHTML);
     }
@@ -230,7 +236,7 @@ class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
             let currProblemDifficulty = parseInt($($(problemsInPage[i]).children()[3]).text().trim());
             let currProblemTags = this.cleanifyTags($($($(problemsInPage[i]).children()[1]).children()[1]).text().trim());
             let currProblemUserCount;
-            if(currProblemDifficulty !== NaN){
+            if(!isNaN(currProblemDifficulty)){
                 currProblemUserCount = parseInt($($(problemsInPage[i]).children()[4]).text().trim().replace("x",""));
             }else{
                 currProblemUserCount = parseInt($($(problemsInPage[i]).children()[3]).text().trim().replace("x",""));                            
@@ -266,17 +272,17 @@ class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
 
 
 interface ProblemData{
-    "contestId": Number,
+    "contestId": number,
     "index": string,
     "name": string,
     "type": string,
-    "rating": Number,
+    "rating": number,
     "tags": string[]
 }
 interface ProblemStat{
-    "contestId": Number,
+    "contestId": number,
     "index": string,
-    "solvedCount": Number
+    "solvedCount": number
 }
 
 export const problemBar = vscode.window.registerTreeDataProvider("codeforces",new CfProblemsProvider());

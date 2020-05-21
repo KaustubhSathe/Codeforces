@@ -1,7 +1,7 @@
 {
 	"name": "cpsolver",
-	"displayName": "CPSolver",
-	"description": "",
+	"displayName": "Codeforces",
+	"description": "Solve codeforces problems directly from VS Code.",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.45.0"
@@ -19,14 +19,27 @@
 		"commands": [
 			{
 				"command": "cpsolver.cfSignIn",
-				"title": "CPSolver : Codeforces Sign-In"
+				"title": "Codeforces Sign-In",
+				"icon": {
+					"dark": "./media/dark/login.svg",
+					"light": "./media/light/refresh.svg"
+				}
 			}
 		],
+		"menus": {
+			"view/title": [
+			  {
+				"command": "cpsolver.cfSignIn",
+				"when": "view == codeforces",
+				"group": "navigation"
+			  }
+			]
+		},
 		"viewsContainers": {
 			"activitybar": [
 				{
 					"id": "problems-explorer",
-					"title": "Problems Explorer",
+					"title": "Codeforces",
 					"icon": "./media/icon.svg"
 				}
 			]
@@ -35,7 +48,7 @@
 			"problems-explorer": [
 				{
 					"id": "codeforces",
-					"name": "Codeforces Problems"
+					"name": "Problems"
 				}
 			]
 		}
