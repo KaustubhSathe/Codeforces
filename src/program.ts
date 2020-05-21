@@ -2,6 +2,7 @@
 import {cf_user_name,cf_pass,sp_user_name,sp_pass,setCF,setSP} from "./userInfo";
 import * as vscode from "vscode";
 import * as puppeteer from "puppeteer";
+import * as cheerio from "cheerio";
 import axios from "axios";
 let browser:puppeteer.Browser|null = null,page:puppeteer.Page|null = null;
 const problemTags = [
@@ -72,9 +73,7 @@ const signInCF = async (username:string,password:string) : Promise<boolean> => {
     return true;
 }
 
-
-
-export const cfSignInFlow = vscode.commands.registerCommand("cpsolver.cfSignIn",async () => {
+const signIntoCfFlow = async ():Promise<void> => {
     if(cf_user_name !== null){
         vscode.window.showInformationMessage("Already Signed in as "+cf_user_name+". If you want to change then please type ahead.");
     }
@@ -96,7 +95,9 @@ export const cfSignInFlow = vscode.commands.registerCommand("cpsolver.cfSignIn",
             break;
         }
     }
-})
+}
+
+export const cfSignInDisposable = vscode.commands.registerCommand("cpsolver.cfSignIn",signIntoCfFlow);
 
 /*-----------------------------Utils-----------------------------*/
 const verify = (input : string|undefined): boolean => {
@@ -147,14 +148,17 @@ class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
             }else if(element.label === "Tags"){
                 return this.getTags();
             }else if(element.label === "Favorites"){
-                return [];
+                if(cf_user_name === null){
+                    return this.favoriteSignInPrompt();   
+                }else{
+                    return this.getFavoriteProblems();
+                }
             }else {
                 if(problemTags.includes(element.label)){
                     return this.getProblemsByTag(element.label);
                 }else if(parseInt(element.label) >= 800 && parseInt(element.label) <= 3500){
-                    return this
+                    return this.getProblemsByDifficulty(parseInt(element.label));
                 }
-
             }
         }else{
             return Promise.resolve([
@@ -164,6 +168,21 @@ class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
                 new Problem("Favorites",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
             ]);
         }
+    }
+    private favoriteSignInPrompt = async ():Promise<Problem[]> => {
+        if(cf_user_name === null){
+            await signIntoCfFlow();
+        }
+        if(cf_user_name !== null){
+            return this.getFavoriteProblems();
+        }
+        return Promise.resolve([]);
+    }
+    private getFavoriteProblems = async ():Promise<Problem[]> => {
+        page = page as puppeteer.Page;
+        await page.goto("https://codeforces.com/favourite/problems");
+        let bodyHTML = await page.evaluate(() => document.body.innerHTML);
+        return this.retrieveProblemsFromPage(bodyHTML);
     }
     private getTags = async (): Promise<Problem[]> => {
         let returnTags:Problem[] = [];
@@ -180,11 +199,50 @@ class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
         }
         return Promise.resolve(returnDifficulties);
     }
-    private getProblemByDifficulty = async (difficultyRating: number):Promise<Problem[]> => {
-        const firstPage = await axios.get(`https://codeforces.com/problemset?tags=${difficultyRating}-${difficultyRating}`);
-        // const 
+    private getProblemsByDifficulty = async (difficultyRating: number):Promise<Problem[]> => {
+        const aoa = null;
+        const firstPage = (await axios.get(`https://codeforces.com/problemset/page/1?tags=${difficultyRating}-${difficultyRating}`)).data;
+        const $ = await cheerio.load(firstPage);
+        const numberOfPages = $(".pagination").children().children().length-2;
+        let returnProblems:Problem[] = [];
+        for(let i = 1;i<=numberOfPages;i++){
+            if(i === 1){
+                const tempPage = firstPage;
+                const tempProblems = await this.retrieveProblemsFromPage(tempPage);
+                tempProblems.forEach(elem => returnProblems.push(elem));
+            }else{  
+                const tempPage = (await axios.get(`https://codeforces.com/problemset/page/${i}?tags=${difficultyRating}-${difficultyRating}`)).data;
+                const tempProblems = await this.retrieveProblemsFromPage(tempPage);
+                tempProblems.forEach(elem => returnProblems.push(elem));
+            }
+        }
         
-        return [];
+        return returnProblems;
+    }
+    private retrieveProblemsFromPage = async (input:any):Promise<Problem[]> => {
+        const $ = await cheerio.load(input);
+        const problemTable = $(".problems");
+        const problemsInPage = problemTable.children().children();
+        let returnProblems: Problem[] = [];
+        for(let i = 1;i<problemsInPage.length;i++){
+            let currProblemId = $($(problemsInPage[i]).children()[0]).text().trim();
+            let currProblemName = $($($(problemsInPage[i]).children()[1]).children()[0]).text().trim();
+            let currProblemDifficulty = parseInt($($(problemsInPage[i]).children()[3]).text().trim());
+            let currProblemTags = this.cleanifyTags($($($(problemsInPage[i]).children()[1]).children()[1]).text().trim());
+            let currProblemUserCount;
+            if(currProblemDifficulty !== NaN){
+                currProblemUserCount = parseInt($($(problemsInPage[i]).children()[4]).text().trim().replace("x",""));
+            }else{
+                currProblemUserCount = parseInt($($(problemsInPage[i]).children()[3]).text().trim().replace("x",""));                            
+            }
+            returnProblems.push(new Problem(currProblemName,currProblemDifficulty,currProblemUserCount,currProblemId,currProblemTags,vscode.TreeItemCollapsibleState.None));
+        }
+        
+        return returnProblems;
+    }
+    private cleanifyTags = (inputTags:string):string[] => {
+        let returnValue:string[] = inputTags.split(",");
+        return returnValue.map(elem => elem.trim());
     }
     private getProblemsByTag = async (tag: string):Promise<Problem[]> =>{
         let returnValue = [];

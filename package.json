@@ -27,7 +27,7 @@
 				{
 					"id": "problems-explorer",
 					"title": "Problems Explorer",
-					"icon" : "./media/icon.svg"
+					"icon": "./media/icon.svg"
 				}
 			]
 		},
@@ -49,13 +49,14 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
-		"@types/vscode": "^1.45.0",
+		"@types/cheerio": "^0.22.18",
 		"@types/glob": "^7.1.1",
 		"@types/mocha": "^7.0.2",
 		"@types/node": "^13.11.0",
-		"eslint": "^6.8.0",
-		"@typescript-eslint/parser": "^2.30.0",
+		"@types/vscode": "^1.45.0",
 		"@typescript-eslint/eslint-plugin": "^2.30.0",
+		"@typescript-eslint/parser": "^2.30.0",
+		"eslint": "^6.8.0",
 		"glob": "^7.1.6",
 		"mocha": "^7.1.2",
 		"typescript": "^3.8.3",
@@ -64,6 +65,7 @@
 	"dependencies": {
 		"@types/puppeteer": "^2.1.0",
 		"axios": "^0.19.2",
+		"cheerio": "^1.0.0-rc.3",
 		"puppeteer": "^3.1.0",
 		"ts-node": "^8.10.1"
 	}
