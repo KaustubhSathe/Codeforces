@@ -111,10 +111,10 @@ const verify = (input : string|undefined): boolean => {
 class Problem extends vscode.TreeItem{
     constructor(
         public readonly label:string,
-        private difficulty:number|null,
-        private userSubmissions:number|null,
-        private problemID:string,
-        private tags:string[],
+        public difficulty:number|null,
+        public userSubmissions:number|null,
+        public problemID:string,
+        public tags:string[],
         public readonly collapsibleState: vscode.TreeItemCollapsibleState 
     ){
         super(label,collapsibleState);
@@ -136,24 +136,39 @@ class Problem extends vscode.TreeItem{
     }  
 }
 
-
-
 export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
-    constructor(){}
+    constructor(
+        public ascendingDifficulty:boolean,
+        public ascendingSubmission:boolean,
+        public sortByProp:number // 0 = difficulty and 1 = submission
+    ){}
     private _onDidChangeTreeData: vscode.EventEmitter<Problem | undefined> = new vscode.EventEmitter<Problem | undefined>();
     readonly onDidChangeTreeData: vscode.Event<Problem | undefined> = this._onDidChangeTreeData.event;
-
-    refresh():void {
+    
+    refresh(sortingMethod:number):void {
+        this.sortByProp = sortingMethod;
         this._onDidChangeTreeData.fire();
     }
     getTreeItem(element: Problem): vscode.TreeItem | Thenable<vscode.TreeItem> {
         return element;    
     }
-    
+    private sortByDifficulty = (p1:Problem,p2:Problem):boolean=>{
+        return <number>p1.difficulty < <number>p2.difficulty;
+    }
+    private sortBySubmission = (p1:Problem,p2:Problem):boolean=>{
+        return <number>p1.userSubmissions < <number>p2.userSubmissions;
+    }
+    private sortingUtil = (inputArray:Problem[]):boolean=>{
+        if(this.sortByProp == 0){
+            
+        }else{
+
+        }
+    }
     getChildren(element?: Problem | undefined): vscode.ProviderResult<Problem[]> {
         if(element){
             if(element.label === "All"){
-                return this.getProblemsByTag("");
+                return Promise.resolve(this.getProblemsByTag("")).then(elem => return this.sortingUtil());                
             }else if(element.label === "Difficulty"){
                 return this.getDifficulties();
             }else if(element.label === "Tags"){
@@ -212,7 +227,6 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
         return Promise.resolve(returnDifficulties);
     }
     private getProblemsByDifficulty = async (difficultyRating: number):Promise<Problem[]> => {
-        const aoa = null;
         const firstPage = (await axios.get(`https://codeforces.com/problemset/page/1?tags=${difficultyRating}-${difficultyRating}`)).data;
         const $ = await cheerio.load(firstPage);
         const numberOfPages = $(".pagination").children().children().length-2;

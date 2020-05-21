@@ -13,6 +13,8 @@
 	"activationEvents": [
 		"onCommand:cpsolver.cfSignIn",
 		"onCommand:cpsolver.refresh",
+		"onCommand:cpsolver.sortBySubmission",
+		"onCommand:cpsolver.sortByDifficulty",
 		"onView:codeforces"
 	],
 	"main": "./out/extension.js",
@@ -33,6 +35,22 @@
 					"dark": "./media/dark/refresh.svg",
 					"light": "./media/light/refresh.svg"
 				}
+			},
+			{
+				"command": "cpsolver.sortByDifficulty",
+				"title": "Sort by difficulty",
+				"icon": {
+					"dark": "./media/flash.svg",
+					"light": "./media/flash.svg"
+				}
+			},
+			{
+				"command": "cpsolver.sortBySubmission",
+				"title": "Sort by submissions",
+				"icon": {
+					"dark": "./media/greenTick.svg",
+					"light": "./media/greenTick.svg"
+				}
 			}
 		],
 		"menus": {
@@ -47,6 +65,18 @@
 				"when": "view == codeforces",
 				"group": "navigation"
 			  }
+			],
+			"view/item/context": [
+				{
+				  "command": "cpsolver.sortBySubmission",
+				  "when": "view == codeforces && viewItem == dependency",
+				  "group": "inline"
+				},
+				{
+					"command": "cpsolver.sortByDifficulty",
+					"when": "view == codeforces && viewItem == dependency",
+					"group": "inline"
+				}
 			]
 		},
 		"viewsContainers": {
