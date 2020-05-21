@@ -37,6 +37,11 @@
 				}
 			},
 			{
+				"command": "cpsolver.recommend",
+				"title": "Recommend Problems",
+				"icon": "./media/recommend.svg"
+			},
+			{
 				"command": "cpsolver.sortByDifficulty",
 				"title": "Sort by difficulty",
 				"icon": {
@@ -47,10 +52,7 @@
 			{
 				"command": "cpsolver.sortBySubmission",
 				"title": "Sort by submissions",
-				"icon": {
-					"dark": "./media/greenTick.svg",
-					"light": "./media/greenTick.svg"
-				}
+				"icon": "./media/man.svg"
 			}
 		],
 		"menus": {
@@ -69,12 +71,12 @@
 			"view/item/context": [
 				{
 				  "command": "cpsolver.sortBySubmission",
-				  "when": "view == codeforces && viewItem == dependency",
+				  "when": "view == codeforces && viewItem == topCategory",
 				  "group": "inline"
 				},
 				{
 					"command": "cpsolver.sortByDifficulty",
-					"when": "view == codeforces && viewItem == dependency",
+					"when": "view == codeforces && viewItem == topCategory",
 					"group": "inline"
 				}
 			]
