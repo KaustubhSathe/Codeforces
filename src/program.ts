@@ -138,8 +138,14 @@ class Problem extends vscode.TreeItem{
 
 
 
-class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
+export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
     constructor(){}
+    private _onDidChangeTreeData: vscode.EventEmitter<Problem | undefined> = new vscode.EventEmitter<Problem | undefined>();
+    readonly onDidChangeTreeData: vscode.Event<Problem | undefined> = this._onDidChangeTreeData.event;
+
+    refresh():void {
+        this._onDidChangeTreeData.fire();
+    }
     getTreeItem(element: Problem): vscode.TreeItem | Thenable<vscode.TreeItem> {
         return element;    
     }
@@ -285,6 +291,5 @@ interface ProblemStat{
     "solvedCount": number
 }
 
-export const problemBar = vscode.window.registerTreeDataProvider("codeforces",new CfProblemsProvider());
 
 

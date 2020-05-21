@@ -12,6 +12,7 @@
 	],
 	"activationEvents": [
 		"onCommand:cpsolver.cfSignIn",
+		"onCommand:cpsolver.refresh",
 		"onView:codeforces"
 	],
 	"main": "./out/extension.js",
@@ -22,6 +23,14 @@
 				"title": "Codeforces Sign-In",
 				"icon": {
 					"dark": "./media/dark/login.svg",
+					"light": "./media/light/login.svg"
+				}
+			},
+			{
+				"command": "cpsolver.refresh",
+				"title": "Refresh",
+				"icon": {
+					"dark": "./media/dark/refresh.svg",
 					"light": "./media/light/refresh.svg"
 				}
 			}
@@ -30,6 +39,11 @@
 			"view/title": [
 			  {
 				"command": "cpsolver.cfSignIn",
+				"when": "view == codeforces",
+				"group": "navigation"
+			  },
+			  {
+				"command": "cpsolver.refresh",
 				"when": "view == codeforces",
 				"group": "navigation"
 			  }
