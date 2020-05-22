@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 import * as puppeteer from "puppeteer";
 import * as cheerio from "cheerio";
 import axios from "axios";
+import * as marked from "marked";
 let browser:puppeteer.Browser|null = null,page:puppeteer.Page|null = null;
 const recommendedTags = [
     "Warmup",
@@ -267,7 +268,13 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
             let problemURL = $($($(totalProblems[i]).children().children()[0]).children()[0]).attr("href")?.trim();
             let splitURL:string[] = (<string>problemURL).split("/");
             let problemId = splitURL[splitURL.length-2].trim() + splitURL[splitURL.length-1].trim();
-            problemsToReturn.push(new Problem(problemName,null,null,problemId,[],vscode.TreeItemCollapsibleState.None));
+            const treeProblem = new Problem(problemName,null,null,problemId,[],vscode.TreeItemCollapsibleState.None);
+            treeProblem.command = {
+                command :"cpsolver.displayProblem",
+                title: "Open Problem",
+                arguments: [problemId]
+            }
+            problemsToReturn.push(treeProblem);
         }
 
         return problemsToReturn;
@@ -338,6 +345,15 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
         
         return returnProblems;
     }
+    public displaySelectedProblemInView = (inp:string):void => {
+        const panel = vscode.window.createWebviewPanel(
+            'codeforces',
+            inp,
+            vscode.ViewColumn.Beside,
+            {}
+          );
+          panel.webview.html = marked(`# aaoaa kaisi ${inp}`);
+    }
     private retrieveProblemsFromPage = async (input:any):Promise<Problem[]> => {
         const $ = await cheerio.load(input);
         const problemTable = $(".problems");
@@ -354,7 +370,13 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
             }else{
                 currProblemUserCount = parseInt($($(problemsInPage[i]).children()[3]).text().trim().replace("x",""));                            
             }
-            returnProblems.push(new Problem(currProblemName,currProblemDifficulty,currProblemUserCount,currProblemId,currProblemTags,vscode.TreeItemCollapsibleState.None));
+            const treeProblem = new Problem(currProblemName,currProblemDifficulty,currProblemUserCount,currProblemId,currProblemTags,vscode.TreeItemCollapsibleState.None,"problemDisplay");
+            treeProblem.command = {
+                command :"cpsolver.displayProblem",
+                title: "Open Problem",
+                arguments: [currProblemId]
+            }
+            returnProblems.push(treeProblem);
         }
         return returnProblems;
     }
@@ -372,13 +394,19 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
         for(let i = 0;i<problems.length;i++){
             const currProblem:ProblemData = problems[i];
             const currStat:ProblemStat = problemStatistics[i];
-            returnValue.push(new Problem(currProblem.name,
+            const treeProblem = new Problem(currProblem.name,
                 currProblem.rating,
                 currStat.solvedCount,
                 currProblem.contestId.toString() + currProblem.index,
                 currProblem.tags,
                 vscode.TreeItemCollapsibleState.None
-            ));
+            );
+            treeProblem.command = {
+                command :"cpsolver.displayProblem",
+                title: "Open Problem",
+                arguments: [currProblem.contestId.toString() + currProblem.index]
+            }
+            returnValue.push(treeProblem);
         }
         return returnValue;
     }
