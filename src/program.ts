@@ -366,6 +366,7 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
 
         const submitCodeToCf = async (code:string,lang:string):Promise<void> => {
             page = page as puppeteer.Page;    
+            vscode.window.showInformationMessage(`Submitting your submission for problem ${inputProblemId}.`);
             await page.goto("https://codeforces.com/problemset/submit");
             await page.type("#pageContent > form > table > tbody > tr:nth-child(1) > td:nth-child(2) > input",inputProblemId);
             await page.select("#pageContent > form > table > tbody > tr:nth-child(3) > td:nth-child(2) > select",lang);
@@ -393,9 +394,9 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
             } catch (error) {
                 console.log("Stuck in queue.");
             }
-            
-            console.log("asads");
+
         }
+
         panel.webview.onDidReceiveMessage(async (message) => {
             switch(message.command) {
                 case "submit":

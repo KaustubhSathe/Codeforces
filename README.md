@@ -3,7 +3,7 @@
 This extension lets you solve codeforces problems directly from VS Code.
 Inspired from this extension [Leetcode](https://github.com/jdneo/vscode-leetcode).
 
-Currently I haven't published this on the marketplace so you will have to install it from vsix. [Link Here](https://drive.google.com/file/d/15PiFnh5-UkbSIxzMwdgnOqJQyfNBSQhH/view?usp=sharing)
+Currently I haven't published this on the marketplace so you will have to install it from vsix. [Link Here](https://drive.google.com/file/d/1lHlZbhUIFJdJqt3mari-LKrYr0_5qaKv/view?usp=sharing)
 Make sure you have Nodejs installed on your system.
 
 #### Features :- 
