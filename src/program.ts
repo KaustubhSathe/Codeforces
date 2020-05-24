@@ -5,6 +5,14 @@ import * as puppeteer from "puppeteer";
 import * as cheerio from "cheerio";
 import axios from "axios";
 import * as marked from "marked";
+import MarkdownIt = require("markdown-it");
+const md = new MarkdownIt();
+md.use(require("markdown-it-math"),{
+    inlineOpen: '$$',
+    inlineClose: '$$',
+    blockOpen: '$$$',
+    blockClose: '$$$'
+});
 let browser:puppeteer.Browser|null = null,page:puppeteer.Page|null = null;
 const recommendedTags = [
     "Warmup",
@@ -81,7 +89,7 @@ const problemTags = [
 
 /*-----------------------------Puppeteer Stuff-----------------------------*/
 const initPuppeteer = async () => {
-    browser = await puppeteer.launch({headless:true});
+    browser = await puppeteer.launch({headless:false});
     page = await browser.newPage();
 }
 
@@ -345,14 +353,111 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
         
         return returnProblems;
     }
-    public displaySelectedProblemInView = (inp:string):void => {
+    
+    public displaySelectedProblemInView = async (inputProblemId:string):Promise<void> => {
         const panel = vscode.window.createWebviewPanel(
             'codeforces',
-            inp,
+            inputProblemId,
             vscode.ViewColumn.Beside,
-            {}
+            {
+                enableScripts: true
+            }
           );
-          panel.webview.html = marked(`# aaoaa kaisi ${inp}`);
+
+        const submitCodeToCf = async (code:string,lang:string):Promise<void> => {
+            page = page as puppeteer.Page;    
+            await page.goto("https://codeforces.com/problemset/submit");
+            await page.type("#pageContent > form > table > tbody > tr:nth-child(1) > td:nth-child(2) > input",inputProblemId);
+            await page.select("#pageContent > form > table > tbody > tr:nth-child(3) > td:nth-child(2) > select",lang);
+            await page.type("#sourceCodeTextarea",code);
+
+            await Promise.all([
+                page.waitForNavigation(),
+                page.click("#pageContent > form > table > tbody > tr:nth-child(6) > td > div > div > input")
+            ]);
+            
+            await page.goto(`https://codeforces.com/contest/${inputProblemId.substring(0,inputProblemId.length-1)}/my`);
+            try {
+                let temp;
+                while(true){
+                    const temp:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
+                    if(temp.includes("Running on test") || temp.includes("In queue") || temp.includes("Running")){
+                        setTimeout(()=>{},1000);
+                    }else{
+                        break;
+                    }   
+                }    
+                const aaoaa:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
+                console.log(aaoaa);
+                vscode.window.showInformationMessage(`Your submission to problem ${inputProblemId} has ${aaoaa}.`);
+            } catch (error) {
+                console.log("Stuck in queue.");
+            }
+            
+            console.log("asads");
+        }
+        panel.webview.onDidReceiveMessage(async (message) => {
+            switch(message.command) {
+                case "submit":
+                    await submitCodeToCf(message.text,message.lang);
+            }
+        });
+        
+        panel.webview.html = await this.parseProblem(inputProblemId);
+    }
+    private parseProblem = async (inputProblemId:string):Promise<string> => {
+        let finalMarkDown:string = "";
+        inputProblemId = inputProblemId.substr(0,inputProblemId.length-1) + "/" + inputProblemId[inputProblemId.length-1];
+        const bodyHTML = (await axios.get(`https://codeforces.com/problemset/problem/${inputProblemId}`)).data;
+        const $ = await cheerio.load(bodyHTML);
+        const problemName = $(".title").text().trim();
+        const timeLimitPerTest = $(".time-limit").text().trim().replace("time limit per test","").trim();
+        const memoryLimitPerTest = $(".memory-limit").text().trim().replace("memory limit per test","").trim();
+        const inputType = $(".input-file").text().trim().substring(5).trim();
+        const outputType = $(".output-file").text().trim().substring(6).trim();
+        const problemStatement = $(".problem-statement").html() as string;
+        
+        return `
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width">
+               
+            </head>
+            <body>
+                ${problemStatement}
+                <br/>
+                <p><strong>Paste your code here : </strong></p>
+                <br/>
+                <textarea id="codebox" rows="10" cols="33" ></textarea>
+                <br/>
+                <br/>
+                <select id="lang">
+                    <option value="54">C++</option>
+                    <option value="60">Java</option>
+                    <option value="31">Python</option>
+                </select>
+                <button type="submit" id="submit">Submit</button>
+                
+                <script>
+                    const vscode = acquireVsCodeApi();
+                    const codeBtn = document.querySelector("#submit");
+                    
+                    
+                    codeBtn.addEventListener("click",function(){
+                        let code = document.querySelector("#codebox").value;
+                        let language = document.querySelector("#lang").value;
+                        vscode.postMessage({
+                            command: "submit",
+                            text:code,
+                            lang: language
+                        });
+                    });
+                </script>
+            </body>
+        </html>
+        `;
     }
     private retrieveProblemsFromPage = async (input:any):Promise<Problem[]> => {
         const $ = await cheerio.load(input);

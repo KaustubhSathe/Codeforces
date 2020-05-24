@@ -7,7 +7,7 @@ export function activate(context: vscode.ExtensionContext) {
 	vscode.commands.registerCommand("cpsolver.refresh",() => dataProvider.refresh(0));
 	vscode.commands.registerCommand("cpsolver.sortByDifficulty",() => dataProvider.refresh(0));
 	vscode.commands.registerCommand("cpsolver.sortBySubmission",() => dataProvider.refresh(1));
-	vscode.commands.registerCommand("cpsolver.displayProblem",(problemId:string) => dataProvider.displaySelectedProblemInView(problemId));
+	vscode.commands.registerCommand("cpsolver.displayProblem",async (problemId:string) => {await dataProvider.displaySelectedProblemInView(problemId);});
 	context.subscriptions.push(
 		cfSignInDisposable
 	);
