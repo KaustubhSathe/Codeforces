@@ -4,7 +4,50 @@ import * as vscode from "vscode";
 import * as puppeteer from "puppeteer";
 import * as cheerio from "cheerio";
 import axios from "axios";
+import * as marked from "marked";
+import MarkdownIt = require("markdown-it");
+const md = new MarkdownIt();
+md.use(require("markdown-it-math"),{
+    inlineOpen: '$$',
+    inlineClose: '$$',
+    blockOpen: '$$$',
+    blockClose: '$$$'
+});
 let browser:puppeteer.Browser|null = null,page:puppeteer.Page|null = null;
+const recommendedTags = [
+    "Warmup",
+    "Daily_Practice",
+    "Weak_Topics",
+    "Easy",
+    "Medium",
+    "Hard",
+    "ICPC",
+    "Mini_Contest",
+    "Strong_Topics",
+    "Binary_Search",
+    "Brute_Force",
+    "Data_Structures",
+    "Divide___Conquer",
+    "Dynamic_Programming",
+    "Greedy",
+    "Implementation",
+    "Adhoc",
+    "Bitmasks",
+    "Combinatorics",
+    "FFT",
+    "Flows___Matching",
+    "Games",
+    "Geometry",
+    "Graphs___Trees",
+    "Hashing",
+    "Math",
+    "Matrices",
+    "Number_Theory",
+    "Probabilities",
+    "Strings",
+    "UNTAGGED",
+    "Random"
+];
 const problemTags = [
     "2-sat",
     "binary search",
@@ -46,7 +89,7 @@ const problemTags = [
 
 /*-----------------------------Puppeteer Stuff-----------------------------*/
 const initPuppeteer = async () => {
-    browser = await puppeteer.launch({headless:true});
+    browser = await puppeteer.launch({ headless:true });
     page = await browser.newPage();
 }
 
@@ -115,7 +158,8 @@ class Problem extends vscode.TreeItem{
         public userSubmissions:number|null,
         public problemID:string,
         public tags:string[],
-        public readonly collapsibleState: vscode.TreeItemCollapsibleState 
+        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+        public readonly contextValue?:string
     ){
         super(label,collapsibleState);
     }
@@ -137,11 +181,13 @@ class Problem extends vscode.TreeItem{
 }
 
 export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
-    constructor(
-        public ascendingDifficulty:boolean,
-        public ascendingSubmission:boolean,
-        public sortByProp:number // 0 = difficulty and 1 = submission
-    ){}
+    private ascendingDifficulty:boolean;
+    private ascendingSubmission:boolean;
+    private sortByProp:number;
+    constructor(){
+        this.ascendingDifficulty = this.ascendingSubmission = true;
+        this.sortByProp = 0;
+    }
     private _onDidChangeTreeData: vscode.EventEmitter<Problem | undefined> = new vscode.EventEmitter<Problem | undefined>();
     readonly onDidChangeTreeData: vscode.Event<Problem | undefined> = this._onDidChangeTreeData.event;
     
@@ -152,23 +198,39 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
     getTreeItem(element: Problem): vscode.TreeItem | Thenable<vscode.TreeItem> {
         return element;    
     }
-    private sortByDifficulty = (p1:Problem,p2:Problem):boolean=>{
-        return <number>p1.difficulty < <number>p2.difficulty;
+    private sortByDifficulty = (p1:Problem,p2:Problem):number=>{
+        return <number>p1.difficulty - <number>p2.difficulty;
     }
-    private sortBySubmission = (p1:Problem,p2:Problem):boolean=>{
-        return <number>p1.userSubmissions < <number>p2.userSubmissions;
+    private sortBySubmission = (p1:Problem,p2:Problem):number=>{
+        return <number>p1.userSubmissions - <number>p2.userSubmissions;
     }
-    private sortingUtil = (inputArray:Problem[]):boolean=>{
-        if(this.sortByProp == 0){
-            
+    private sortingUtil = (inputArray:Problem[]):Problem[]=>{
+        if(this.sortByProp === 0){
+            if(this.ascendingDifficulty === true){
+                this.ascendingDifficulty = false;
+                inputArray.sort(this.sortByDifficulty);
+                return inputArray;
+            }else{
+                this.ascendingDifficulty = true;
+                inputArray.sort((a:Problem,b:Problem) => -1*this.sortByDifficulty(a,b));
+                return inputArray;
+            }
         }else{
-
+            if(this.ascendingSubmission === true){
+                this.ascendingSubmission = false;
+                inputArray.sort(this.sortBySubmission);
+                return inputArray;
+            }else{
+                this.ascendingSubmission = true;
+                inputArray.sort((a:Problem,b:Problem) => -1*this.sortBySubmission(a,b));
+                return inputArray;
+            }
         }
     }
     getChildren(element?: Problem | undefined): vscode.ProviderResult<Problem[]> {
         if(element){
             if(element.label === "All"){
-                return Promise.resolve(this.getProblemsByTag("")).then(elem => return this.sortingUtil());                
+                return Promise.resolve(this.getProblemsByTag("")).then(elem => this.sortingUtil(elem));                
             }else if(element.label === "Difficulty"){
                 return this.getDifficulties();
             }else if(element.label === "Tags"){
@@ -177,30 +239,76 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
                 if(cf_user_name === null){
                     return this.favoriteSignInPrompt();   
                 }else{
-                    return this.getFavoriteProblems();
+                    return this.getFavoriteProblems().then(elem => this.sortingUtil(elem));
+                }
+            }else if(element.label === "Recommended Problems"){
+                if(cf_user_name === null){
+                    return this.recommendedProblemSignInPrompt();
+                }else{
+                    return this.getRecommendedTags();
                 }
             }else {
                 if(problemTags.includes(element.label)){
-                    return this.getProblemsByTag(element.label);
+                    return this.getProblemsByTag(element.label).then(elem => this.sortingUtil(elem));
+                }else if(recommendedTags.includes(element.label)){
+                    return this.getRecommendedProblemsByTag(element.label);
                 }else if(parseInt(element.label) >= 800 && parseInt(element.label) <= 3500){
-                    return this.getProblemsByDifficulty(parseInt(element.label));
+                    return this.getProblemsByDifficulty(parseInt(element.label)).then(elem => this.sortingUtil(elem));
                 }
             }
         }else{
             return Promise.resolve([
-                new Problem("All",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
+                new Problem("All",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed,"topCategory"),
                 new Problem("Difficulty",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
                 new Problem("Tags",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
-                new Problem("Favorites",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed),
+                new Problem("Favorites",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed,"topCategory"),
+                new Problem("Recommended Problems",null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed)
             ]);
         }
     }
+    private getRecommendedProblemsByTag = async (inputTag: string):Promise<Problem[]> =>{
+        let body = (await axios.get(`https://recommender.codedrills.io/profile?handles=${cf_user_name}`)).data;
+        const $ = await cheerio.load(body);
+        const totalProblems = $($($("#" + inputTag).children()[2]).children()[0]).children().children().children();
+        const problemsToReturn:Problem[] = [];
+        for(let i = 0;i<totalProblems.length;i++){
+            let problemName = $($(totalProblems[i]).children().children()[0]).text().trim();
+            let problemURL = $($($(totalProblems[i]).children().children()[0]).children()[0]).attr("href")?.trim();
+            let splitURL:string[] = (<string>problemURL).split("/");
+            let problemId = splitURL[splitURL.length-2].trim() + splitURL[splitURL.length-1].trim();
+            const treeProblem = new Problem(problemName,null,null,problemId,[],vscode.TreeItemCollapsibleState.None);
+            treeProblem.command = {
+                command :"cpsolver.displayProblem",
+                title: "Open Problem",
+                arguments: [problemId]
+            }
+            problemsToReturn.push(treeProblem);
+        }
+
+        return problemsToReturn;
+    }
+    private getRecommendedTags = async ():Promise<Problem[]> => {
+        return recommendedTags.map(elem => 
+            new Problem(elem,null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed)
+        );
+    }
+
+    private recommendedProblemSignInPrompt = async ():Promise<Problem[]> => {
+        if(cf_user_name === null){
+            await signIntoCfFlow();
+        }
+        if(cf_user_name !== null){
+            return this.getRecommendedTags();
+        }
+        return Promise.resolve([]);
+    }
+
     private favoriteSignInPrompt = async ():Promise<Problem[]> => {
         if(cf_user_name === null){
             await signIntoCfFlow();
         }
         if(cf_user_name !== null){
-            return this.getFavoriteProblems();
+            return this.getFavoriteProblems().then(elem => this.sortingUtil(elem));
         }
         return Promise.resolve([]);
     }
@@ -214,7 +322,7 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
     private getTags = async (): Promise<Problem[]> => {
         let returnTags:Problem[] = [];
         problemTags.forEach(elem => {
-            returnTags.push(new Problem(elem,null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed));
+            returnTags.push(new Problem(elem,null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed,"topCategory"));
         });
 
         return Promise.resolve(returnTags);
@@ -222,7 +330,7 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
     private getDifficulties = async (): Promise<Problem[]> => {
         let returnDifficulties:Problem[] = [];
         for(let i = 800;i<=3500;i+=100){
-            returnDifficulties.push(new Problem(i.toString(),null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed));
+            returnDifficulties.push(new Problem(i.toString(),null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed,"topCategory"));
         }
         return Promise.resolve(returnDifficulties);
     }
@@ -245,6 +353,112 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
         
         return returnProblems;
     }
+    
+    public displaySelectedProblemInView = async (inputProblemId:string):Promise<void> => {
+        const panel = vscode.window.createWebviewPanel(
+            'codeforces',
+            inputProblemId,
+            vscode.ViewColumn.Beside,
+            {
+                enableScripts: true
+            }
+          );
+
+        const submitCodeToCf = async (code:string,lang:string):Promise<void> => {
+            page = page as puppeteer.Page;    
+            await page.goto("https://codeforces.com/problemset/submit");
+            await page.type("#pageContent > form > table > tbody > tr:nth-child(1) > td:nth-child(2) > input",inputProblemId);
+            await page.select("#pageContent > form > table > tbody > tr:nth-child(3) > td:nth-child(2) > select",lang);
+            await page.type("#sourceCodeTextarea",code);
+
+            await Promise.all([
+                page.waitForNavigation(),
+                page.click("#pageContent > form > table > tbody > tr:nth-child(6) > td > div > div > input")
+            ]);
+            
+            await page.goto(`https://codeforces.com/contest/${inputProblemId.substring(0,inputProblemId.length-1)}/my`);
+            try {
+                let temp;
+                while(true){
+                    const temp:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
+                    if(temp.includes("Running on test") || temp.includes("In queue") || temp.includes("Running")){
+                        setTimeout(()=>{},1000);
+                    }else{
+                        break;
+                    }   
+                }    
+                const aaoaa:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
+                console.log(aaoaa);
+                vscode.window.showInformationMessage(`Your submission to problem ${inputProblemId} has ${aaoaa}.`);
+            } catch (error) {
+                console.log("Stuck in queue.");
+            }
+            
+            console.log("asads");
+        }
+        panel.webview.onDidReceiveMessage(async (message) => {
+            switch(message.command) {
+                case "submit":
+                    await submitCodeToCf(message.text,message.lang);
+            }
+        });
+        
+        panel.webview.html = await this.parseProblem(inputProblemId);
+    }
+    private parseProblem = async (inputProblemId:string):Promise<string> => {
+        let finalMarkDown:string = "";
+        inputProblemId = inputProblemId.substr(0,inputProblemId.length-1) + "/" + inputProblemId[inputProblemId.length-1];
+        const bodyHTML = (await axios.get(`https://codeforces.com/problemset/problem/${inputProblemId}`)).data;
+        const $ = await cheerio.load(bodyHTML);
+        const problemName = $(".title").text().trim();
+        const timeLimitPerTest = $(".time-limit").text().trim().replace("time limit per test","").trim();
+        const memoryLimitPerTest = $(".memory-limit").text().trim().replace("memory limit per test","").trim();
+        const inputType = $(".input-file").text().trim().substring(5).trim();
+        const outputType = $(".output-file").text().trim().substring(6).trim();
+        const problemStatement = $(".problem-statement").html() as string;
+        
+        return `
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width">
+               
+            </head>
+            <body>
+                ${problemStatement}
+                <br/>
+                <p><strong>Paste your code here : </strong></p>
+                <br/>
+                <textarea id="codebox" rows="10" cols="33" ></textarea>
+                <br/>
+                <br/>
+                <select id="lang">
+                    <option value="54">C++</option>
+                    <option value="60">Java</option>
+                    <option value="31">Python</option>
+                </select>
+                <button type="submit" id="submit">Submit</button>
+                
+                <script>
+                    const vscode = acquireVsCodeApi();
+                    const codeBtn = document.querySelector("#submit");
+                    
+                    
+                    codeBtn.addEventListener("click",function(){
+                        let code = document.querySelector("#codebox").value;
+                        let language = document.querySelector("#lang").value;
+                        vscode.postMessage({
+                            command: "submit",
+                            text:code,
+                            lang: language
+                        });
+                    });
+                </script>
+            </body>
+        </html>
+        `;
+    }
     private retrieveProblemsFromPage = async (input:any):Promise<Problem[]> => {
         const $ = await cheerio.load(input);
         const problemTable = $(".problems");
@@ -261,15 +475,22 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
             }else{
                 currProblemUserCount = parseInt($($(problemsInPage[i]).children()[3]).text().trim().replace("x",""));                            
             }
-            returnProblems.push(new Problem(currProblemName,currProblemDifficulty,currProblemUserCount,currProblemId,currProblemTags,vscode.TreeItemCollapsibleState.None));
+            const treeProblem = new Problem(currProblemName,currProblemDifficulty,currProblemUserCount,currProblemId,currProblemTags,vscode.TreeItemCollapsibleState.None,"problemDisplay");
+            treeProblem.command = {
+                command :"cpsolver.displayProblem",
+                title: "Open Problem",
+                arguments: [currProblemId]
+            }
+            returnProblems.push(treeProblem);
         }
-        
         return returnProblems;
     }
+
     private cleanifyTags = (inputTags:string):string[] => {
         let returnValue:string[] = inputTags.split(",");
         return returnValue.map(elem => elem.trim());
     }
+
     private getProblemsByTag = async (tag: string):Promise<Problem[]> =>{
         let returnValue = [];
         let fetchData = (await axios.get(`https://codeforces.com/api/problemset.problems?tags=${encodeURI(tag)}`)).data.result;
@@ -278,13 +499,19 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<Problem>{
         for(let i = 0;i<problems.length;i++){
             const currProblem:ProblemData = problems[i];
             const currStat:ProblemStat = problemStatistics[i];
-            returnValue.push(new Problem(currProblem.name,
+            const treeProblem = new Problem(currProblem.name,
                 currProblem.rating,
                 currStat.solvedCount,
                 currProblem.contestId.toString() + currProblem.index,
                 currProblem.tags,
                 vscode.TreeItemCollapsibleState.None
-            ));
+            );
+            treeProblem.command = {
+                command :"cpsolver.displayProblem",
+                title: "Open Problem",
+                arguments: [currProblem.contestId.toString() + currProblem.index]
+            }
+            returnValue.push(treeProblem);
         }
         return returnValue;
     }
