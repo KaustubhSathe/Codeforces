@@ -6,6 +6,11 @@ Inspired from this extension [Leetcode](https://github.com/jdneo/vscode-leetcode
 Currently I haven't published this on the marketplace so you will have to install it from vsix. [Link Here](https://drive.google.com/file/d/1lHlZbhUIFJdJqt3mari-LKrYr0_5qaKv/view?usp=sharing)
 Make sure you have Nodejs installed on your system.
 
+[![Capture-2.png](https://imagehost.imageupload.net/2020/05/24/Capture-2.png)](https://www.imageupload.net/image/whnGZ)
+
+[![Capture3.md.png](https://imagehost.imageupload.net/2020/05/24/Capture3.md.png)](https://www.imageupload.net/image/whs3b)
+
+
 #### Features :- 
 - Submit problem to codeforces
 - Recommends Problems for practice which uses [Codedrils](https://recommender.codedrills.io/) in the backend (parses recommended problems from it)
