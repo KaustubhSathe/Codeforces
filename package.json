@@ -11,10 +11,10 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:cpsolver.cfSignIn",
-		"onCommand:cpsolver.refresh",
-		"onCommand:cpsolver.sortBySubmission",
-		"onCommand:cpsolver.sortByDifficulty",
+		"onCommand:codeforces.cfSignIn",
+		"onCommand:codeforces.refresh",
+		"onCommand:codeforces.sortBySubmission",
+		"onCommand:codeforces.sortByDifficulty",
 		"onView:codeforces"
 	],
 	"main": "./out/extension.js",
@@ -22,7 +22,7 @@
 		"markdown.markdownItPlugins": true,
 		"commands": [
 			{
-				"command": "cpsolver.cfSignIn",
+				"command": "codeforces.SignIn",
 				"title": "Codeforces Sign-In",
 				"icon": {
 					"dark": "./media/dark/login.svg",
@@ -30,7 +30,7 @@
 				}
 			},
 			{
-				"command": "cpsolver.refresh",
+				"command": "codeforces.refresh",
 				"title": "Refresh",
 				"icon": {
 					"dark": "./media/dark/refresh.svg",
@@ -38,12 +38,12 @@
 				}
 			},
 			{
-				"command": "cpsolver.recommend",
+				"command": "codeforces.recommend",
 				"title": "Recommend Problems",
 				"icon": "./media/recommend.svg"
 			},
 			{
-				"command": "cpsolver.sortByDifficulty",
+				"command": "codeforces.sortByDifficulty",
 				"title": "Sort by difficulty",
 				"icon": {
 					"dark": "./media/flash.svg",
@@ -51,36 +51,36 @@
 				}
 			},
 			{
-				"command": "cpsolver.sortBySubmission",
+				"command": "codeforces.sortBySubmission",
 				"title": "Sort by submissions",
 				"icon": "./media/man.svg"
 			},
 			{
-				"command": "cpsolver.displayProblem",
+				"command": "codeforces.displayProblem",
 				"title": "Display Problem"
 			}
 		],
 		"menus": {
 			"view/title": [
 				{
-					"command": "cpsolver.cfSignIn",
+					"command": "codeforces.cfSignIn",
 					"when": "view == codeforces",
 					"group": "navigation"
 				},
 				{
-					"command": "cpsolver.refresh",
+					"command": "codeforces.refresh",
 					"when": "view == codeforces",
 					"group": "navigation"
 				}
 			],
 			"view/item/context": [
 				{
-					"command": "cpsolver.sortBySubmission",
+					"command": "codeforces.sortBySubmission",
 					"when": "view == codeforces && viewItem == topCategory",
 					"group": "inline"
 				},
 				{
-					"command": "cpsolver.sortByDifficulty",
+					"command": "codeforces.sortByDifficulty",
 					"when": "view == codeforces && viewItem == topCategory",
 					"group": "inline"
 				}

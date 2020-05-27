@@ -1,18 +1,5 @@
 # Codeforces
 
-Solve codeforces problems directly from VS Code.
-
-## Requirements
-- [VS Code](https://code.visualstudio.com/)
-- [Node.js](https://nodejs.org/en/)
-
-
--------------------
-## Quick Start
-
-// GIF to be added here
-
--------------------
 ## Features
 
 **Sign In/Out**
@@ -56,9 +43,19 @@ Shows a list of current or upcoming contests in the codeforces explorer, you can
 
 ------------------------
 ## Commands
+ User facing commands : 
 - Codeforces: Sign In - To sign in to your account
 - Codeforces: Sign-Out - To sign out of your account
 - Codeforces: Recommend Problems
+
+Backend commands : 
+- Codeforces: Refresh
+- Codeforces: Sort by difficulty
+- Codeforces: Sort by submissions 
+- Codeforces: Display Problem
+
+-------------------------
+
 
 
 
