@@ -7,52 +7,82 @@ import { ProblemData } from "./interfaces/ProblemData";
 
 export class Puppet{
     browser?:puppeteer.Browser;
-    user?: User;
-    constructor(){}
-
-    
-
+    user: User;
+    constructor(){
+        this.user = {
+            password : "",
+            username : "",
+            solvedProblems : new Map<string,string>(),
+            unsolvedProblems : new Map<string,string>()
+        };
+    }
     setUsername = (username:string) =>{
-        if(this.user !== undefined){
-            this.user.username= username;
-        }
+        this.user.username= username;
     };
 
     setPassword = (password : string) => {
-        if(this.user !== undefined){
-            this.user.password = password;
-        }
+        this.user.password = password;
     };
 
     signInCF = async (username:string,password:string) : Promise<boolean> => {
-        if(!!!this.browser){
-            await this.initPuppet();
+        if(this.browser === undefined){
+            this.browser = await puppeteer.launch({ headless:true });
         }
         this.browser = this.browser as puppeteer.Browser;
-        let page = await this.browser.newPage();
+        let page:puppeteer.Page = await this.browser.newPage();
         
-        await this.page.goto("https://codeforces.com/enter?back=%2F");
-        await this.page.type("#handleOrEmail",username);
-        await this.page.type("#password",password);
+        await page.goto("https://codeforces.com/enter?back=%2F");
+        await page.type("#handleOrEmail",username);
+        await page.type("#password",password);
         await Promise.all([
-            this.page.waitForNavigation(),
-            this.page.click("#enterForm > table > tbody > tr:nth-child(4) > td > div:nth-child(1) > input")
+            page.waitForNavigation(),
+            page.click("#enterForm > table > tbody > tr:nth-child(4) > td > div:nth-child(1) > input")
         ]);
-    
-        if(this.page.url() === "https://codeforces.com/enter?back=%2F"){
+        if(page.url() === "https://codeforces.com/enter?back=%2F"){
+            page.close();
             return false;
         }
-        
+        page.close();
         return true;
     };
     
     signIntoCfFlow = async ():Promise<void> => {
-        if(!!!this.user){
-            vscode.window.showInformationMessage("Already Signed in as "+this.username+". If you want to change then please type ahead.");
+        if(this.user !== undefined){
+            vscode.window.showInformationMessage(`Already Signed in as ${this.user.username}. If you want to change then please type ahead.`);
         }
+        const verify = (input : string|undefined): boolean => {
+            const items = input?.split(" ");
+            if(items === undefined||items.length !== 2){return false;}
+            return true;
+        };
+
+        const getUserProblems = async ():Promise<void> => {
+            const problems:Array<any> = ((await axios.get(`https://codeforces.com/api/user.status?handle=${this.user?.username}`)) as any).result;
+                
+            for(let i = 0;i<problems.length;i++){
+                const elem:any = problems[i];
+                const id = elem.problem.contestId + elem.problem.index;
+                const verdict = elem.verdict;
+                if(this.user.solvedProblems.has(id)){
+                    continue;
+                }
+
+                if(verdict !== "OK"){
+                    if(!this.user.unsolvedProblems.has(id)){
+                        this.user.unsolvedProblems.set(id,"WRONG_ANSWER");
+                    }
+                }else{
+                    if(this.user.unsolvedProblems.has(id)){
+                        this.user.unsolvedProblems.delete(id);
+                    }
+                    this.user.solvedProblems.set(id,"ACCEPTED");
+                }
+            }
+        };
+        
         while(true){
-            let input: string|undefined = await vscode.window.showInputBox({placeHolder:"Please enter your codeforces username and password SPACE SEPERATED"});
-            if(!this.verify(input)){
+            let input: string|undefined = await vscode.window.showInputBox({placeHolder:"Please enter your codeforces username and password SPACE SEPERATED"});  
+            if(!verify(input)){
                 if(input === undefined){break;}
                 vscode.window.showErrorMessage("Please enter Username and Password SPACE SEPERATED.");
             }else{
@@ -65,16 +95,11 @@ export class Puppet{
                 }
                 this.setUsername(username);
                 this.setPassword(password);
-                vscode.window.showInformationMessage("Succesfully signed in as : " + username);
+                await getUserProblems();
+                vscode.window.showInformationMessage("Succesfully signed in as : " + this.user?.username);
                 break;
             }
         }
-    };
-
-    verify = (input : string|undefined): boolean => {
-        const items = input?.split(" ");
-        if(items === undefined||items.length !== 2){return false;}
-        return true;
     };
 
     extractProblemData = async (url:string):Promise<ProblemData>=> {
@@ -104,7 +129,7 @@ export class Puppet{
         return problem;
     };
     getRecommendedProblemsByTag = async (inputTag: string):Promise<ProblemData[]> =>{
-        let body = (await axios.get(`https://recommender.codedrills.io/profile?handles=${cf_user_name}`)).data;
+        let body = (await axios.get(`https://recommender.codedrills.io/profile?handles=${this.user.username}`)).data;
         const $ = await cheerio.load(body);
         const totalProblems = $($($("#" + inputTag).children()[2]).children()[0]).children().children().children();
         const problemsRecommended:ProblemData[] = [];
@@ -114,7 +139,7 @@ export class Puppet{
             let contestId = parseInt(url.split("/")[url.split("/").length - 2]);
             let index = url[url.length - 1];
             problemsRecommended.push({
-                index,contestId
+                index,contestId,name
             });
         }
         
@@ -151,7 +176,7 @@ export class Puppet{
     };
 
     getFavoriteProblems = async ():Promise<ProblemData[]> => {
-        if(!!!this.browser){
+        if(this.browser === undefined){
             this.browser = await puppeteer.launch({ headless:true });
         }
         const page:puppeteer.Page = await this.browser.newPage();
@@ -175,140 +200,24 @@ export class Puppet{
     };
 
 
-    private getDifficulties = async (): Promise<Problem[]> => {
-        let returnDifficulties:Problem[] = [];
-        for(let i = 800;i<=3500;i+=100){
-            returnDifficulties.push(new Problem(i.toString(),null,null,"",[],vscode.TreeItemCollapsibleState.Collapsed,"topCategory"));
-        }
-        return Promise.resolve(returnDifficulties);
-    };
-    private getProblemsByDifficulty = async (difficultyRating: number):Promise<Problem[]> => {
+    
+    getProblemsByDifficulty = async (difficultyRating: number):Promise<ProblemData[]> => {
         const firstPage = (await axios.get(`https://codeforces.com/problemset/page/1?tags=${difficultyRating}-${difficultyRating}`)).data;
         const $ = await cheerio.load(firstPage);
         const numberOfPages = $(".pagination").children().children().length-2;
-        let returnProblems:Problem[] = [];
+        let problems:any[] = [];
+
         for(let i = 1;i<=numberOfPages;i++){
-            if(i === 1){
-                const tempPage = firstPage;
-                const tempProblems = await this.retrieveProblemsFromPage(tempPage);
-                tempProblems.forEach(elem => returnProblems.push(elem));
-            }else{  
+            problems.push(async ():Promise<ProblemData[]> => {
                 const tempPage = (await axios.get(`https://codeforces.com/problemset/page/${i}?tags=${difficultyRating}-${difficultyRating}`)).data;
                 const tempProblems = await this.retrieveProblemsFromPage(tempPage);
-                tempProblems.forEach(elem => returnProblems.push(elem));
-            }
+                return tempProblems;
+            });
         }
         
-        return returnProblems;
+        return axios.all(problems);
     };
     
-    displaySelectedProblemInView = async (inputProblemId:string):Promise<void> => {
-        const panel = vscode.window.createWebviewPanel(
-            'codeforces',
-            inputProblemId,
-            vscode.ViewColumn.Beside,
-            {
-                enableScripts: true
-            }
-          );
-
-        const submitCodeToCf = async (code:string,lang:string):Promise<void> => {
-            page = page as puppeteer.Page;    
-            vscode.window.showInformationMessage(`Submitting your submission for problem ${inputProblemId}.`);
-            await page.goto("https://codeforces.com/problemset/submit");
-            await page.type("#pageContent > form > table > tbody > tr:nth-child(1) > td:nth-child(2) > input",inputProblemId);
-            await page.select("#pageContent > form > table > tbody > tr:nth-child(3) > td:nth-child(2) > select",lang);
-            await page.type("#sourceCodeTextarea",code);
-
-            await Promise.all([
-                page.waitForNavigation(),
-                page.click("#pageContent > form > table > tbody > tr:nth-child(6) > td > div > div > input")
-            ]);
-            
-            await page.goto(`https://codeforces.com/contest/${inputProblemId.substring(0,inputProblemId.length-1)}/my`);
-            try {
-                let temp;
-                while(true){
-                    const temp:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
-                    if(temp.includes("Running on test") || temp.includes("In queue") || temp.includes("Running")){
-                        setTimeout(()=>{},1000);
-                    }else{
-                        break;
-                    }   
-                }    
-                const aaoaa:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
-                console.log(aaoaa);
-                vscode.window.showInformationMessage(`Your submission to problem ${inputProblemId} has ${aaoaa}.`);
-            } catch (error) {
-                console.log("Stuck in queue.");
-            }
-
-        }
-
-        panel.webview.onDidReceiveMessage(async (message) => {
-            switch(message.command) {
-                case "submit":
-                    await submitCodeToCf(message.text,message.lang);
-            }
-        });
-        
-        panel.webview.html = await this.parseProblem(inputProblemId);
-    };
-    private parseProblem = async (inputProblemId:string):Promise<string> => {
-        let finalMarkDown:string = "";
-        inputProblemId = inputProblemId.substr(0,inputProblemId.length-1) + "/" + inputProblemId[inputProblemId.length-1];
-        const bodyHTML = (await axios.get(`https://codeforces.com/problemset/problem/${inputProblemId}`)).data;
-        const $ = await cheerio.load(bodyHTML);
-        const problemName = $(".title").text().trim();
-        const timeLimitPerTest = $(".time-limit").text().trim().replace("time limit per test","").trim();
-        const memoryLimitPerTest = $(".memory-limit").text().trim().replace("memory limit per test","").trim();
-        const inputType = $(".input-file").text().trim().substring(5).trim();
-        const outputType = $(".output-file").text().trim().substring(6).trim();
-        const problemStatement = $(".problem-statement").html() as string;
-        
-        return `
-        <!DOCTYPE html>
-        <html>
-            <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width">
-               
-            </head>
-            <body>
-                ${problemStatement}
-                <br/>
-                <p><strong>Paste your code here : </strong></p>
-                <br/>
-                <textarea id="codebox" rows="10" cols="33" ></textarea>
-                <br/>
-                <br/>
-                <select id="lang">
-                    <option value="54">C++</option>
-                    <option value="60">Java</option>
-                    <option value="31">Python</option>
-                </select>
-                <button type="submit" id="submit">Submit</button>
-                
-                <script>
-                    const vscode = acquireVsCodeApi();
-                    const codeBtn = document.querySelector("#submit");
-                    
-                    
-                    codeBtn.addEventListener("click",function(){
-                        let code = document.querySelector("#codebox").value;
-                        let language = document.querySelector("#lang").value;
-                        vscode.postMessage({
-                            command: "submit",
-                            text:code,
-                            lang: language
-                        });
-                    });
-                </script>
-            </body>
-        </html>
-        `;
-    };
-
 }
 
 

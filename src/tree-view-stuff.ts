@@ -4,11 +4,12 @@ import * as cheerio from "cheerio";
 import axios from "axios";
 import { User } from "./interfaces/user";
 import {Puppet} from "./puppet";
+import {problemTags,recommendedTags} from "./constants";
 
 
 class ExplorerViewItem extends vscode.TreeItem{
     difficulty?:number;
-    userSubmissions?:number;
+    solvedCount?:number;
     tags?:string[];
     
     constructor(readonly label:string,readonly collapsibleState: vscode.TreeItemCollapsibleState){
@@ -25,9 +26,9 @@ class ExplorerViewItem extends vscode.TreeItem{
             return "";
         }
         if(isNaN(this.difficulty)){
-            return `Solved Count: ${this.userSubmissions}`;    
+            return `Solved Count: ${this.solvedCount}`;    
         }
-        return `Difficulty: ${this.difficulty} | Solved Count: ${this.userSubmissions}`;
+        return `Difficulty: ${this.difficulty} | Solved Count: ${this.solvedCount}`;
     }  
 }
 
@@ -45,7 +46,7 @@ class ExplorerViewItemBuilder {
     }
     
     userSubmissions(subs: number|undefined): ExplorerViewItemBuilder {
-      this.item.userSubmissions = subs;
+      this.item.solvedCount = subs;
       return this;
     }
 
@@ -131,35 +132,7 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<ExplorerViewI
         }
     }
     getChildren(element?: ExplorerViewItem | undefined): vscode.ProviderResult<ExplorerViewItem[]> {
-        if(element){
-            if(element.label === "All"){
-                return Promise.resolve(this.getProblemsByTag("")).then(elem => this.sortingUtil(elem));                
-            }else if(element.label === "Difficulty"){
-                return this.getDifficulties();
-            }else if(element.label === "Tags"){
-                return this.getTags();
-            }else if(element.label === "Favorites"){
-                if(cf_user_name === null){
-                    return this.favoriteSignInPrompt();   
-                }else{
-                    return this.getFavoriteProblems().then(elem => this.sortingUtil(elem));
-                }
-            }else if(element.label === "Recommended Problems"){
-                if(cf_user_name === null){
-                    return this.recommendedProblemSignInPrompt();
-                }else{
-                    return this.getRecommendedTags();
-                }
-            }else {
-                if(problemTags.includes(element.label)){
-                    return this.getProblemsByTag(element.label).then(elem => this.sortingUtil(elem));
-                }else if(recommendedTags.includes(element.label)){
-                    return this.getRecommendedProblemsByTag(element.label);
-                }else if(parseInt(element.label) >= 800 && parseInt(element.label) <= 3500){
-                    return this.getProblemsByDifficulty(parseInt(element.label)).then(elem => this.sortingUtil(elem));
-                }
-            }
-        }else{
+        if(this.puppet.user === undefined){
             return Promise.resolve([
                 (new ExplorerViewItemBuilder("Sign in to Codeforces",vscode.TreeItemCollapsibleState.None))
                 .command({
@@ -169,5 +142,232 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<ExplorerViewI
                 .build()
             ]);
         }
+        
+        if(element){
+            if(element.label === "All"){
+                return this.puppet.getProblemsByTag("")
+                .then(arr => { 
+                    return arr.map(itr => {
+                        const id:string = itr.contestId as number + (itr.index as string);
+                        return (new ExplorerViewItemBuilder(itr.name as string,vscode.TreeItemCollapsibleState.None))
+                        .userSubmissions(itr.solvedCount)
+                        .tags(itr.tags)
+                        .id(id)
+                        .iconPath(
+                            (this.puppet.user.solvedProblems.has(id) ? "../media/greenTick.svg" : 
+                            (this.puppet.user.unsolvedProblems.has(id) ? "../media/redCross.svg" : undefined))
+                        )
+                        .difficulty(itr.rating)
+                        .contextValue(undefined)
+                        .command({
+                            command: "codeforces.displayProblem",
+                            title: "Display Problem"
+                        })
+                        .build();
+                    });
+                });
+            }else if(element.label === "Difficulty"){
+                const diffs: ExplorerViewItem[] = [];
+                for(let i = 800;i<=3500;i += 100){
+                    diffs.push((new ExplorerViewItemBuilder(i.toString(),vscode.TreeItemCollapsibleState.Collapsed).userSubmissions(undefined).tags(undefined).id(i.toString()).iconPath(undefined).difficulty(undefined).contextValue("topCategory").command(undefined).build()))
+                }
+                return diffs;
+            }else if(element.label === "Tags"){
+                return problemTags.map(itr =>{
+                    return (new ExplorerViewItemBuilder(itr,vscode.TreeItemCollapsibleState.Collapsed)).userSubmissions(undefined).tags(undefined).id(itr).iconPath(undefined).difficulty(undefined).contextValue("topCategory").command(undefined).build();
+                });
+            }else if(element.label === "Favorites"){
+                return this.puppet.getFavoriteProblems()
+                    .then(arr => {
+                        return arr.map(itr => {
+                            const id:string = itr.contestId as number + (itr.index as string);
+                            return (new ExplorerViewItemBuilder(itr.name as string,vscode.TreeItemCollapsibleState.None)).userSubmissions(itr.solvedCount).tags(itr.tags).id(id)
+                            .iconPath(
+                                (this.puppet.user.solvedProblems.has(id) ? "../media/greenTick.svg" : 
+                                (this.puppet.user.unsolvedProblems.has(id) ? "../media/redCross.svg" : undefined))
+                            ).difficulty(itr.rating).contextValue(undefined)
+                            .command({
+                                command: "codeforces.displayProblem",
+                                title: "Display Problem"
+                            }).build();
+                        });
+                    });
+            }else if(element.label === "Recommended Problems"){
+                return recommendedTags.map(itr => {
+                    return (new ExplorerViewItemBuilder(itr,vscode.TreeItemCollapsibleState.Collapsed)).userSubmissions(undefined).tags(undefined).id(itr).iconPath(undefined).difficulty(undefined).contextValue(undefined).command(undefined).build();
+                });
+            }else if(parseInt(element.label) >= 800 && parseInt(element.label) <= 3500){
+                return this.puppet.getProblemsByDifficulty(parseInt(element.label))
+                .then(arr => {
+                    return arr.map(itr => {
+                        const id:string = itr.contestId as number + (itr.index as string);
+                        return (new ExplorerViewItemBuilder(itr.name as string,vscode.TreeItemCollapsibleState.None)).userSubmissions(itr.solvedCount).tags(itr.tags).id(id)
+                        .iconPath(
+                            (this.puppet.user.solvedProblems.has(id) ? "../media/greenTick.svg" : 
+                            (this.puppet.user.unsolvedProblems.has(id) ? "../media/redCross.svg" : undefined))
+                        ).difficulty(itr.rating).contextValue(undefined)
+                        .command({
+                            command: "codeforces.displayProblem",
+                            title: "Display Problem"
+                        }).build();
+                    });
+                });
+            }else if(problemTags.includes(element.label)){
+                return this.puppet.getProblemsByTag(element.label)
+                .then(arr => {
+                    return arr.map(itr => {
+                        const id:string = itr.contestId as number + (itr.index as string);
+                        return (new ExplorerViewItemBuilder(itr.name as string,vscode.TreeItemCollapsibleState.None)).userSubmissions(itr.solvedCount).tags(itr.tags).id(id)
+                        .iconPath(
+                            (this.puppet.user.solvedProblems.has(id) ? "../media/greenTick.svg" : 
+                            (this.puppet.user.unsolvedProblems.has(id) ? "../media/redCross.svg" : undefined))
+                        ).difficulty(itr.rating).contextValue(undefined)
+                        .command({
+                            command: "codeforces.displayProblem",
+                            title: "Display Problem"
+                        }).build();
+                    });
+                });
+            }else if(recommendedTags.includes(element.label)){
+                return this.puppet.getRecommendedProblemsByTag(element.label)
+                .then(arr => {
+                    return arr.map(itr => {
+                        const id:string = itr.contestId as number + (itr.index as string);
+                        return (new ExplorerViewItemBuilder(itr.name as string,vscode.TreeItemCollapsibleState.None)).userSubmissions(itr.solvedCount).tags(itr.tags).id(id)
+                        .iconPath(
+                            (this.puppet.user.solvedProblems.has(id) ? "../media/greenTick.svg" : 
+                            (this.puppet.user.unsolvedProblems.has(id) ? "../media/redCross.svg" : undefined))
+                        ).difficulty(itr.rating).contextValue(undefined)
+                        .command({
+                            command: "codeforces.displayProblem",
+                            title: "Display Problem"
+                        }).build();
+                    });
+                });
+            }
+        }else{
+            return Promise.resolve(
+                [
+                    (new ExplorerViewItemBuilder("All",vscode.TreeItemCollapsibleState.Collapsed)).userSubmissions(undefined).tags(undefined).id("All").iconPath(undefined).difficulty(undefined).contextValue("topCategory").command(undefined).build(),
+                    (new ExplorerViewItemBuilder("Difficulty",vscode.TreeItemCollapsibleState.Collapsed)).userSubmissions(undefined).tags(undefined).id("Difficulty").iconPath(undefined).difficulty(undefined).contextValue(undefined).command(undefined).build(),
+                    (new ExplorerViewItemBuilder("Tags",vscode.TreeItemCollapsibleState.Collapsed)).userSubmissions(undefined).tags(undefined).id("Tags").iconPath(undefined).difficulty(undefined).contextValue(undefined).command(undefined).build(),
+                    (new ExplorerViewItemBuilder("Favorites",vscode.TreeItemCollapsibleState.Collapsed)).userSubmissions(undefined).tags(undefined).id("Favorites").iconPath(undefined).difficulty(undefined).contextValue(undefined).command(undefined).build(),
+                    (new ExplorerViewItemBuilder("Recommended Problems",vscode.TreeItemCollapsibleState.Collapsed)).userSubmissions(undefined).tags(undefined).id("Recommended Problems").iconPath(undefined).difficulty(undefined).contextValue(undefined).command(undefined).build()
+                ]
+            );
+        }
+            
+            
     }
+
+
+    displaySelectedProblemInView = async (inputProblemId:string):Promise<void> => {
+        const panel = vscode.window.createWebviewPanel(
+            'codeforces',
+            inputProblemId,
+            vscode.ViewColumn.Beside,
+            {
+                enableScripts: true
+            }
+          );
+
+        const submitCodeToCf = async (code:string,lang:string):Promise<void> => {
+            page = page as puppeteer.Page;    
+            vscode.window.showInformationMessage(`Submitting your submission for problem ${inputProblemId}.`);
+            await page.goto("https://codeforces.com/problemset/submit");
+            await page.type("#pageContent > form > table > tbody > tr:nth-child(1) > td:nth-child(2) > input",inputProblemId);
+            await page.select("#pageContent > form > table > tbody > tr:nth-child(3) > td:nth-child(2) > select",lang);
+            await page.type("#sourceCodeTextarea",code);
+
+            await Promise.all([
+                page.waitForNavigation(),
+                page.click("#pageContent > form > table > tbody > tr:nth-child(6) > td > div > div > input")
+            ]);
+            
+            await page.goto(`https://codeforces.com/contest/${inputProblemId.substring(0,inputProblemId.length-1)}/my`);
+            try {
+                let temp;
+                while(true){
+                    const temp:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
+                    if(temp.includes("Running on test") || temp.includes("In queue") || temp.includes("Running")){
+                        setTimeout(()=>{},1000);
+                    }else{
+                        break;
+                    }   
+                }    
+                const aaoaa:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
+                console.log(aaoaa);
+                vscode.window.showInformationMessage(`Your submission to problem ${inputProblemId} has ${aaoaa}.`);
+            } catch (error) {
+                console.log("Stuck in queue.");
+            }
+
+        }
+
+        panel.webview.onDidReceiveMessage(async (message) => {
+            switch(message.command) {
+                case "submit":
+                    await submitCodeToCf(message.text,message.lang);
+            }
+        });
+        
+        panel.webview.html = await parseProblem(inputProblemId);
+
+
+        const parseProblem = async (inputProblemId:string):Promise<string> => {
+            let finalMarkDown:string = "";
+            inputProblemId = inputProblemId.substr(0,inputProblemId.length-1) + "/" + inputProblemId[inputProblemId.length-1];
+            const bodyHTML = (await axios.get(`https://codeforces.com/problemset/problem/${inputProblemId}`)).data;
+            const $ = await cheerio.load(bodyHTML);
+            const problemName = $(".title").text().trim();
+            const timeLimitPerTest = $(".time-limit").text().trim().replace("time limit per test","").trim();
+            const memoryLimitPerTest = $(".memory-limit").text().trim().replace("memory limit per test","").trim();
+            const inputType = $(".input-file").text().trim().substring(5).trim();
+            const outputType = $(".output-file").text().trim().substring(6).trim();
+            const problemStatement = $(".problem-statement").html() as string;
+            
+            return `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width">
+                   
+                </head>
+                <body>
+                    ${problemStatement}
+                    <br/>
+                    <p><strong>Paste your code here : </strong></p>
+                    <br/>
+                    <textarea id="codebox" rows="10" cols="33" ></textarea>
+                    <br/>
+                    <br/>
+                    <select id="lang">
+                        <option value="54">C++</option>
+                        <option value="60">Java</option>
+                        <option value="31">Python</option>
+                    </select>
+                    <button type="submit" id="submit">Submit</button>
+                    
+                    <script>
+                        const vscode = acquireVsCodeApi();
+                        const codeBtn = document.querySelector("#submit");
+                        
+                        
+                        codeBtn.addEventListener("click",function(){
+                            let code = document.querySelector("#codebox").value;
+                            let language = document.querySelector("#lang").value;
+                            vscode.postMessage({
+                                command: "submit",
+                                text:code,
+                                lang: language
+                            });
+                        });
+                    </script>
+                </body>
+            </html>
+            `;
+        };
+    };
+    
 }

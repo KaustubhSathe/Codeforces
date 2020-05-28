@@ -1,6 +1,6 @@
 export interface User{
-    username?:string;
-    password?:string;
-    solvedProblems?: Object;
-    unsolvedProblems? : Object;
+    username:string;
+    password:string;
+    solvedProblems: Map<string,string>;
+    unsolvedProblems : Map<string,string>;
 }

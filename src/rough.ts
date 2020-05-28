@@ -28,5 +28,6 @@ const extractProblemData = async (url:string):Promise<void>=> {
     console.log(problem);
 };
 
+let temp:Object = {}
 
-extractProblemData("https://codeforces.com/problemset/problem/269/D");
+console.log(temp.aaoaa);
