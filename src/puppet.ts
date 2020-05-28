@@ -28,7 +28,7 @@ export class Puppet{
         if(this.browser === undefined){
             this.browser = await puppeteer.launch({ headless:true });
         }
-        let page:puppeteer.Page = await this.browser.newPage();
+        const page:puppeteer.Page = await this.browser.newPage();
         
         await page.goto("https://codeforces.com/enter?back=%2F");
         await page.type("#handleOrEmail",username);
@@ -104,29 +104,67 @@ export class Puppet{
     };
 
     extractProblemData = async (url:string):Promise<ProblemData>=> {
-        let bodyHTML = (await axios.get(url)).data;
-        const $ = await cheerio.load(bodyHTML);
+        if(this.browser === undefined){
+            this.browser = await puppeteer.launch({headless:true});
+        }
+        const page:puppeteer.Page = await this.browser.newPage();
+        await page.goto(url);
         const problem:ProblemData = {};
-        problem.name = $("#pageContent > div.problemindexholder > div > div > div.header > div.title").text().trim();
-        problem.timeLimit = $("#pageContent > div.problemindexholder > div > div > div.header > div.time-limit").text().trim().replace("time limit per test","");
-        problem.memoryLimit = $("#pageContent > div.problemindexholder > div > div > div.header > div.memory-limit").text().trim().replace("memory limit per test","");
-        problem.inputType = $("#pageContent > div.problemindexholder > div > div > div.header > div.input-file").text().trim().substring(5);
-        problem.outputType = $("#pageContent > div.problemindexholder > div > div > div.header > div.output-file").text().trim().substring(6);
-        problem.problemStatement = $("#pageContent > div.problemindexholder > div > div > div:nth-child(2)").html()?.toString().trim();
-        problem.inputSpecification = $(".input-specification").html()?.toString().trim();
-        problem.outputSpecification = $(".output-specification").html()?.toString().trim();
-        problem.sampleTests = $("#pageContent > div.problemindexholder > div > div > div.sample-tests").html()?.toString().trim();
-        problem.note = $("#pageContent > div.problemindexholder > div > div > div.note").html()?.toString().trim();
+        problem.name = await page.evaluate(() => document.querySelector("#pageContent > div.problemindexholder > div > div > div.header > div.title")?.textContent?.trim());
+        problem.timeLimit = await page.evaluate(() => document.querySelector("#pageContent > div.problemindexholder > div > div > div.header > div.time-limit")?.textContent?.trim().replace("time limit per test","")); 
+        problem.memoryLimit = await page.evaluate(() => document.querySelector("#pageContent > div.problemindexholder > div > div > div.header > div.memory-limit")?.textContent?.trim().replace("memory limit per test",""));   
+        problem.inputType = await page.evaluate(() => document.querySelector("#pageContent > div.problemindexholder > div > div > div.header > div.input-file")?.textContent?.trim().substring(5));
+        problem.outputType = await page.evaluate(() => document.querySelector("#pageContent > div.problemindexholder > div > div > div.header > div.output-file")?.textContent?.trim().substring(6));
+        problem.problemStatement = await page.evaluate(() => {
+            let temp = document.querySelectorAll(".MJX_Assistive_MathML");
+            for(let i = 0;i<temp.length;i++){
+                temp[i].parentNode?.removeChild(temp[i]);
+            }
+            return document.querySelector("#pageContent > div.problemindexholder > div > div > div:nth-child(2)")?.innerHTML?.toString().trim()
+        });
+        problem.inputSpecification = await page.evaluate(() => {
+            let temp = document.querySelectorAll(".MJX_Assistive_MathML");
+            for(let i = 0;i<temp.length;i++){
+                temp[i].parentNode?.removeChild(temp[i]);
+            }
+            return document.querySelector(".input-specification")?.innerHTML?.toString().trim();
+        });
+        problem.outputSpecification = await page.evaluate(() => {
+            let temp = document.querySelectorAll(".MJX_Assistive_MathML");
+            for(let i = 0;i<temp.length;i++){
+                temp[i].parentNode?.removeChild(temp[i]);
+            }
+            return document.querySelector(".output-specification")?.innerHTML.toString().trim();
+        });
+        problem.sampleTests = await page.evaluate(() => {
+            let temp = document.querySelectorAll(".MJX_Assistive_MathML");
+            for(let i = 0;i<temp.length;i++){
+                temp[i].parentNode?.removeChild(temp[i]);
+            }
+            return document.querySelector("#pageContent > div.problemindexholder > div > div > div.sample-tests")?.innerHTML?.toString().trim();
+        });
+        problem.note = await page.evaluate(() => {
+            let temp = document.querySelectorAll(".MJX_Assistive_MathML");
+            for(let i = 0;i<temp.length;i++){
+                temp[i].parentNode?.removeChild(temp[i]);
+            }
+            return document.querySelector("#pageContent > div.problemindexholder > div > div > div.note")?.innerHTML?.toString().trim();
+        });
         problem.contestId = parseInt(url.split("/")[url.split("/").length - 2]);
         problem.index = url[url.length - 1];
         problem.type = "PROGRAMMING";
-        problem.rating=  parseInt($(`span[title="Difficulty"]`).text().trim().replace("*",""));
-        problem.tags = $(`div[style="padding: 0.5em;"]`).children().toArray()
-                        .filter((elem,i,arr) => i<=arr.length-3)
-                        .map(elem => $(elem).text().trim());
-        problem.solvedCount = undefined;
+        problem.rating = await page.evaluate(() => parseInt(document.querySelector(`span[title="Difficulty"]`)?.textContent?.trim().replace("*","") as string));
+        problem.tags = await page.evaluate(() => {
+            let tt = document.querySelector(`div[style="padding: 0.5em;"]`)?.children as HTMLCollection;
+            let aaoa:string[] = [];
+            for(let i = 0;i<=(tt?.length as number) -3;i++){
+                aaoa.push(tt[i].textContent?.trim() as string);
+            }
+            return aaoa;
+        });
         
-
+        problem.solvedCount = undefined;
+        page.close();
         return problem;
     };
     getRecommendedProblemsByTag = async (inputTag: string):Promise<ProblemData[]> =>{
@@ -184,6 +222,7 @@ export class Puppet{
         await page.goto("https://codeforces.com/favourite/problems");
         
         let bodyHTML = await page.evaluate(() => document.body.innerHTML);
+        page.close();
         return this.retrieveProblemsFromPage(bodyHTML);
     };
 
@@ -206,17 +245,15 @@ export class Puppet{
         const firstPage = (await axios.get(`https://codeforces.com/problemset/page/1?tags=${difficultyRating}-${difficultyRating}`)).data;
         const $ = await cheerio.load(firstPage);
         const numberOfPages = $(".pagination").children().children().length-2;
-        let problems:any[] = [];
+        let problems:ProblemData[] = [];
 
         for(let i = 1;i<=numberOfPages;i++){
-            problems.push(async ():Promise<ProblemData[]> => {
-                const tempPage = (await axios.get(`https://codeforces.com/problemset/page/${i}?tags=${difficultyRating}-${difficultyRating}`)).data;
-                const tempProblems = await this.retrieveProblemsFromPage(tempPage);
-                return tempProblems;
-            });
+            const tempPage = (await axios.get(`https://codeforces.com/problemset/page/${i}?tags=${difficultyRating}-${difficultyRating}`)).data;
+            const tempProblems = await this.retrieveProblemsFromPage(tempPage);
+            tempProblems.forEach(itr => problems.push(itr));
         }
         
-        return axios.all(problems);
+        return problems;
     };
 
 
@@ -252,7 +289,7 @@ export class Puppet{
         } catch (error) {
             console.log("Stuck in queue.");
         }
-
+        page.close();
     };
     
 }

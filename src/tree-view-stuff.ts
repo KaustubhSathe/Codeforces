@@ -1,16 +1,19 @@
 import * as vscode from "vscode";
 import * as puppeteer from "puppeteer";
+import * as path from "path";
 import * as cheerio from "cheerio";
 import axios from "axios";
 import { User } from "./interfaces/user";
 import {Puppet} from "./puppet";
 import {problemTags,recommendedTags} from "./constants";
+import { ProblemData } from "./interfaces/ProblemData";
 
 
 class ExplorerViewItem extends vscode.TreeItem{
     difficulty?:number;
     solvedCount?:number;
     tags?:string[];
+    problemId?:string;
     
     constructor(readonly label:string,readonly collapsibleState: vscode.TreeItemCollapsibleState){
         super(label,collapsibleState);
@@ -51,7 +54,7 @@ class ExplorerViewItemBuilder {
     }
 
     id(id:string|undefined): ExplorerViewItemBuilder{
-        this.item.id = id;
+        this.item.problemId = id;
         return this;
     } 
 
@@ -161,7 +164,8 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                         .contextValue(undefined)
                         .command({
                             command: "codeforces.displayProblem",
-                            title: "Display Problem"
+                            title: "Display Problem",
+                            arguments: [id]
                         })
                         .build();
                     });
@@ -188,7 +192,8 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                             ).difficulty(itr.rating).contextValue(undefined)
                             .command({
                                 command: "codeforces.displayProblem",
-                                title: "Display Problem"
+                                title: "Display Problem",
+                                arguments: [id]
                             }).build();
                         });
                     });
@@ -208,7 +213,8 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                         ).difficulty(itr.rating).contextValue(undefined)
                         .command({
                             command: "codeforces.displayProblem",
-                            title: "Display Problem"
+                            title: "Display Problem",
+                            arguments: [id]
                         }).build();
                     });
                 });
@@ -224,7 +230,8 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                         ).difficulty(itr.rating).contextValue(undefined)
                         .command({
                             command: "codeforces.displayProblem",
-                            title: "Display Problem"
+                            title: "Display Problem",
+                            arguments: [id]
                         }).build();
                     });
                 });
@@ -240,7 +247,8 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                         ).difficulty(itr.rating).contextValue(undefined)
                         .command({
                             command: "codeforces.displayProblem",
-                            title: "Display Problem"
+                            title: "Display Problem",
+                            arguments: [id]
                         }).build();
                     });
                 });
@@ -277,59 +285,64 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                     await this.puppet.submitCodeToCf(message.text,message.lang,inputProblemId);
             }
         });
-        
-        const parseProblem = async (inputProblemId:string):Promise<string> => {
-            let finalMarkDown:string = "";
-            inputProblemId = inputProblemId.substr(0,inputProblemId.length-1) + "/" + inputProblemId[inputProblemId.length-1];
-            const bodyHTML = (await axios.get(`https://codeforces.com/problemset/problem/${inputProblemId}`)).data;
-            const $ = await cheerio.load(bodyHTML);
-            const problemName = $(".title").text().trim();
-            const timeLimitPerTest = $(".time-limit").text().trim().replace("time limit per test","").trim();
-            const memoryLimitPerTest = $(".memory-limit").text().trim().replace("memory limit per test","").trim();
-            const inputType = $(".input-file").text().trim().substring(5).trim();
-            const outputType = $(".output-file").text().trim().substring(6).trim();
-            const problemStatement = $(".problem-statement").html() as string;
+    
+        const parseProblem = async (problemId:string):Promise<string> => {
+            const problem:ProblemData = await this.puppet.extractProblemData(`https://codeforces.com/problemset/problem/${problemId.substr(0,problemId.length-1)}/${problemId[problemId.length-1]}`)
             
             return `
             <!DOCTYPE html>
-            <html>
-                <head>
-                    <meta charset="utf-8">
-                    <meta name="viewport" content="width=device-width">
-                   
-                </head>
-                <body>
-                    ${problemStatement}
-                    <br/>
-                    <p><strong>Paste your code here : </strong></p>
-                    <br/>
-                    <textarea id="codebox" rows="10" cols="33" ></textarea>
-                    <br/>
-                    <br/>
-                    <select id="lang">
-                        <option value="54">C++</option>
-                        <option value="60">Java</option>
-                        <option value="31">Python</option>
-                    </select>
-                    <button type="submit" id="submit">Submit</button>
-                    
-                    <script>
-                        const vscode = acquireVsCodeApi();
-                        const codeBtn = document.querySelector("#submit");
+                <html>
+                    <head>
+                        <meta charset="utf-8">
+                        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+                        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+                        <meta name="viewport" content="width=device-width">
+                        <style>
+                            .header{
+                                margin-left:auto;
+                                margin-right:auto;
+                                text-align:center;
+                            }
+                        #title{
+                            font-size:30px;
+                            margin-top:4px;
+                            margin-bottom:4px;
+                        }
+                        #time-limit{
+                            margin-top:4px;
+                            margin-bottom:4px;
+                        }
+                        #memory-limit{
+                            margin-top:4px;
+                            margin-bottom:4px;
+                        }
+                        #input-type{
+                            margin-top:4px;
+                            margin-bottom:4px;
+                        }
+                        #output-type{
+                            margin-top:4px;
+                            margin-bottom:4px;
+                        }
                         
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <p id="title">H. Binary Median</p>
+                            <p id="time-limit">time limit per test : 2 seconds</p>
+                            <p id="memory-limit">memory limit per test256 megabytes</p>
+                            <p id="input-type">input: standard input</p>
+                            <p id="output-type">output: standard output</p>
+                        </div>
+                        <hr/>
+
+                        <div>
+                            ${problem.problemStatement}
+                        </div>
                         
-                        codeBtn.addEventListener("click",function(){
-                            let code = document.querySelector("#codebox").value;
-                            let language = document.querySelector("#lang").value;
-                            vscode.postMessage({
-                                command: "submit",
-                                text:code,
-                                lang: language
-                            });
-                        });
-                    </script>
-                </body>
-            </html>
+                    </body>
+                </html>
             `;
         };
 
