@@ -27,11 +27,16 @@ Problems can be sorted by their difficulty and number of submissions.
 
 Your solved problems are marked as green tick : 
 
-// Add pic here
+// Add a pic here
 
 Search problems : 
 
 // Add a pic here
+
+Add to favorites : 
+
+// Add a pic here
+// Option in webview 
 
 
 
@@ -46,7 +51,7 @@ Shows a list of current or upcoming contests in the codeforces explorer, you can
  User facing commands : 
 - Codeforces: Sign In - To sign in to your account
 - Codeforces: Sign-Out - To sign out of your account
-- Codeforces: Recommend Problems
+<!-- - Codeforces: Recommend Problems -->
 
 Backend commands : 
 - Codeforces: Refresh

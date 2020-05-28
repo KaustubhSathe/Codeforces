@@ -11,19 +11,15 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:codeforces.cfSignIn",
-		"onCommand:codeforces.refresh",
-		"onCommand:codeforces.sortBySubmission",
-		"onCommand:codeforces.sortByDifficulty",
+		"onCommand:codeforces.SignIn",
 		"onView:codeforces"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
-		"markdown.markdownItPlugins": true,
 		"commands": [
 			{
 				"command": "codeforces.SignIn",
-				"title": "Codeforces Sign-In",
+				"title": "Codeforces: Sign-In",
 				"icon": {
 					"dark": "./media/dark/login.svg",
 					"light": "./media/light/login.svg"
@@ -39,12 +35,12 @@
 			},
 			{
 				"command": "codeforces.recommend",
-				"title": "Recommend Problems",
+				"title": "Codeforces: Recommend Problems",
 				"icon": "./media/recommend.svg"
 			},
 			{
 				"command": "codeforces.sortByDifficulty",
-				"title": "Sort by difficulty",
+				"title": "Codeforces: Sort by difficulty",
 				"icon": {
 					"dark": "./media/flash.svg",
 					"light": "./media/flash.svg"
@@ -52,23 +48,45 @@
 			},
 			{
 				"command": "codeforces.sortBySubmission",
-				"title": "Sort by submissions",
+				"title": "Codeforces: Sort by submissions",
 				"icon": "./media/man.svg"
 			},
 			{
 				"command": "codeforces.displayProblem",
-				"title": "Display Problem"
+				"title": "Codeforces: Recommend Problems"
 			}
 		],
 		"menus": {
+			"commandPalette": [
+				{
+					"command": "codeforces.refresh",
+					"when": "false"
+				},
+				{
+					"command": "codeforces.sortBySubmission",
+					"when": "false"
+				},
+				{
+					"command": "codeforces.sortByDifficulty",
+					"when": "false"
+				},
+				{
+					"command": "codeforces.recommend",
+					"when": "false"
+				},
+				{
+					"command": "codeforces.displayProblem",
+					"when": "false"
+				}
+			],
 			"view/title": [
 				{
-					"command": "codeforces.cfSignIn",
+					"command": "codeforces.refresh",
 					"when": "view == codeforces",
 					"group": "navigation"
 				},
 				{
-					"command": "codeforces.refresh",
+					"command": "codeforces.SignIn",
 					"when": "view == codeforces",
 					"group": "navigation"
 				}

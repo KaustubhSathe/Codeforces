@@ -28,7 +28,6 @@ export class Puppet{
         if(this.browser === undefined){
             this.browser = await puppeteer.launch({ headless:true });
         }
-        this.browser = this.browser as puppeteer.Browser;
         let page:puppeteer.Page = await this.browser.newPage();
         
         await page.goto("https://codeforces.com/enter?back=%2F");
@@ -47,7 +46,7 @@ export class Puppet{
     };
     
     signIntoCfFlow = async ():Promise<void> => {
-        if(this.user !== undefined){
+        if(this.user.username !== ""){
             vscode.window.showInformationMessage(`Already Signed in as ${this.user.username}. If you want to change then please type ahead.`);
         }
         const verify = (input : string|undefined): boolean => {
@@ -57,7 +56,7 @@ export class Puppet{
         };
 
         const getUserProblems = async ():Promise<void> => {
-            const problems:Array<any> = ((await axios.get(`https://codeforces.com/api/user.status?handle=${this.user?.username}`)) as any).result;
+            const problems:Array<any> = ((await axios.get(`https://codeforces.com/api/user.status?handle=${this.user?.username}`)) as any).data.result;
                 
             for(let i = 0;i<problems.length;i++){
                 const elem:any = problems[i];
@@ -95,8 +94,10 @@ export class Puppet{
                 }
                 this.setUsername(username);
                 this.setPassword(password);
+                
                 await getUserProblems();
                 vscode.window.showInformationMessage("Succesfully signed in as : " + this.user?.username);
+                vscode.commands.executeCommand("codeforces.refresh");
                 break;
             }
         }
@@ -216,6 +217,42 @@ export class Puppet{
         }
         
         return axios.all(problems);
+    };
+
+
+    submitCodeToCf = async (code:string,lang:string,inputProblemId:string):Promise<void> => {
+        if(this.browser === undefined){
+            this.browser = await puppeteer.launch({headless:true});
+        }  
+        const page:puppeteer.Page = await this.browser.newPage();
+        vscode.window.showInformationMessage(`Submitting your submission for problem ${inputProblemId}.`);
+        await page.goto("https://codeforces.com/problemset/submit");
+        await page.type("#pageContent > form > table > tbody > tr:nth-child(1) > td:nth-child(2) > input",inputProblemId);
+        await page.select("#pageContent > form > table > tbody > tr:nth-child(3) > td:nth-child(2) > select",lang);
+        await page.type("#sourceCodeTextarea",code);
+
+        await Promise.all([
+            page.waitForNavigation(),
+            page.click("#pageContent > form > table > tbody > tr:nth-child(6) > td > div > div > input")
+        ]);
+        
+        await page.goto(`https://codeforces.com/contest/${inputProblemId.substring(0,inputProblemId.length-1)}/my`);
+        try {
+            while(true){
+                const temp:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
+                if(temp.includes("Running on test") || temp.includes("In queue") || temp.includes("Running")){
+                    setTimeout(()=>{},1000);
+                }else{
+                    break;
+                }   
+            }    
+            const aaoaa:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
+            console.log(aaoaa);
+            vscode.window.showInformationMessage(`Your submission to problem ${inputProblemId} has ${aaoaa}.`);
+        } catch (error) {
+            console.log("Stuck in queue.");
+        }
+
     };
     
 }

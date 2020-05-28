@@ -80,7 +80,7 @@ class ExplorerViewItemBuilder {
 }
 
 
-export class CfProblemsProvider implements vscode.TreeDataProvider<ExplorerViewItem>{
+export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerViewItem>{
     ascendingDifficulty:boolean;
     ascendingSubmission:boolean;
     sortByProp:number;
@@ -132,7 +132,7 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<ExplorerViewI
         }
     }
     getChildren(element?: ExplorerViewItem | undefined): vscode.ProviderResult<ExplorerViewItem[]> {
-        if(this.puppet.user === undefined){
+        if(this.puppet.user.username === ""){
             return Promise.resolve([
                 (new ExplorerViewItemBuilder("Sign in to Codeforces",vscode.TreeItemCollapsibleState.None))
                 .command({
@@ -271,49 +271,13 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<ExplorerViewI
             }
           );
 
-        const submitCodeToCf = async (code:string,lang:string):Promise<void> => {
-            page = page as puppeteer.Page;    
-            vscode.window.showInformationMessage(`Submitting your submission for problem ${inputProblemId}.`);
-            await page.goto("https://codeforces.com/problemset/submit");
-            await page.type("#pageContent > form > table > tbody > tr:nth-child(1) > td:nth-child(2) > input",inputProblemId);
-            await page.select("#pageContent > form > table > tbody > tr:nth-child(3) > td:nth-child(2) > select",lang);
-            await page.type("#sourceCodeTextarea",code);
-
-            await Promise.all([
-                page.waitForNavigation(),
-                page.click("#pageContent > form > table > tbody > tr:nth-child(6) > td > div > div > input")
-            ]);
-            
-            await page.goto(`https://codeforces.com/contest/${inputProblemId.substring(0,inputProblemId.length-1)}/my`);
-            try {
-                let temp;
-                while(true){
-                    const temp:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
-                    if(temp.includes("Running on test") || temp.includes("In queue") || temp.includes("Running")){
-                        setTimeout(()=>{},1000);
-                    }else{
-                        break;
-                    }   
-                }    
-                const aaoaa:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
-                console.log(aaoaa);
-                vscode.window.showInformationMessage(`Your submission to problem ${inputProblemId} has ${aaoaa}.`);
-            } catch (error) {
-                console.log("Stuck in queue.");
-            }
-
-        }
-
         panel.webview.onDidReceiveMessage(async (message) => {
             switch(message.command) {
                 case "submit":
-                    await submitCodeToCf(message.text,message.lang);
+                    await this.puppet.submitCodeToCf(message.text,message.lang,inputProblemId);
             }
         });
         
-        panel.webview.html = await parseProblem(inputProblemId);
-
-
         const parseProblem = async (inputProblemId:string):Promise<string> => {
             let finalMarkDown:string = "";
             inputProblemId = inputProblemId.substr(0,inputProblemId.length-1) + "/" + inputProblemId[inputProblemId.length-1];
@@ -368,6 +332,10 @@ export class CfProblemsProvider implements vscode.TreeDataProvider<ExplorerViewI
             </html>
             `;
         };
+
+
+        panel.webview.html = await parseProblem(inputProblemId);
+
     };
     
 }
