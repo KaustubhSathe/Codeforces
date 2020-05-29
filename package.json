@@ -1,15 +1,26 @@
 {
-	"name": "codeforces",
+	"name": "vscode-codeforces",
 	"displayName": "Codeforces",
 	"description": "Solve codeforces problems directly from VS Code.",
 	"version": "0.0.1",
+	"author": "Kaustubh Sathe",
+	"license": "MIT",
+	"homepage": "https://github.com/KaustubhSathe/Codeforces/blob/master/README.md",
+	"keywords": [
+		"codeforces",
+		"algorithm",
+		"data structures",
+		"competitive programming"
+	],
+	"preview": true,
 	"engines": {
 		"vscode": "^1.45.0"
 	},
 	"repository": {
-		"url": "https://github.com/KaustubhSathe/Codeforces"
+		"url": "https://github.com/KaustubhSathe/Codeforces",
+		"type": "git"
 	},
-	"icon": "C:/Users/f2015/Documents/cpsolver/media/icon.png",
+	"icon": "images/icon.png",
 	"publisher": "KaustubhSathe",
 	"categories": [
 		"Other"

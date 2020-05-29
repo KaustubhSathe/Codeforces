@@ -10,7 +10,7 @@ Solve codeforces problems directly from VS Code.
 -------------------
 ## Quick Start
 
-// GIF to be added here
+// GIF to be added here quickstart1
 
 -------------------
 ## Features
@@ -18,11 +18,11 @@ Solve codeforces problems directly from VS Code.
 **Sign In/Out**
 
 - Click on "Sign in to Codeforces" in the codeforces explorer to sign in with your codeforces account.
-- Or use the following commands :
+- Or use the following command :
     - Codeforces : Sign In 
-    - Codeforces : Sign Out
 
-// Add a pic here
+
+// Add a pic here signinpic
 
 **Browse Problems**
 
@@ -36,15 +36,12 @@ Browse problems by categories :
 
 Problems can be sorted by their difficulty and number of submissions.
 
-// Add a pic here
+// Add a pic here browseproblems
 
-Your solved problems are marked as green tick : 
+Your solved problems are marked as green tick and failed submissions as red cross: 
 
-// Add pic here
+// Add pic here greenticpic
 
-Search problems : 
-
-// Add a pic here
 
 
 
@@ -57,8 +54,6 @@ Shows a list of current or upcoming contests in the codeforces explorer, you can
 ------------------------
 ## Commands
 - Codeforces: Sign In - To sign in to your account
-- Codeforces: Sign-Out - To sign out of your account
-- Codeforces: Recommend Problems
 
 
 
