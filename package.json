@@ -6,6 +6,10 @@
 	"engines": {
 		"vscode": "^1.45.0"
 	},
+	"repository": {
+		"url": "https://github.com/KaustubhSathe/Codeforces"
+	},
+	"icon": "C:/Users/f2015/Documents/cpsolver/media/icon.png",
 	"publisher": "KaustubhSathe",
 	"categories": [
 		"Other"
@@ -35,12 +39,12 @@
 			},
 			{
 				"command": "codeforces.recommend",
-				"title": "Codeforces: Recommend Problems",
+				"title": "Recommend Problems",
 				"icon": "./media/recommend.svg"
 			},
 			{
 				"command": "codeforces.sortByDifficulty",
-				"title": "Codeforces: Sort by difficulty",
+				"title": "Sort by difficulty",
 				"icon": {
 					"dark": "./media/flash.svg",
 					"light": "./media/flash.svg"
@@ -48,12 +52,12 @@
 			},
 			{
 				"command": "codeforces.sortBySubmission",
-				"title": "Codeforces: Sort by submissions",
+				"title": "Sort by submissions",
 				"icon": "./media/man.svg"
 			},
 			{
 				"command": "codeforces.displayProblem",
-				"title": "Codeforces: Recommend Problems"
+				"title": "Display Problem"
 			}
 		],
 		"menus": {

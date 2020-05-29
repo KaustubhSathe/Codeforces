@@ -29,7 +29,13 @@ export class Puppet{
             this.browser = await puppeteer.launch({ headless:true });
         }
         const page:puppeteer.Page = await this.browser.newPage();
-        
+        if(this.user.username !== ""){
+            await page.goto("https://codeforces.com/enter?back=%2F");
+            await Promise.all([
+                page.waitForNavigation(),
+                page.click("#header > div.lang-chooser > div:nth-child(2) > a:nth-child(2)")
+            ]);
+        }
         await page.goto("https://codeforces.com/enter?back=%2F");
         await page.type("#handleOrEmail",username);
         await page.type("#password",password);
@@ -87,6 +93,7 @@ export class Puppet{
             }else{
                 input = input as string;
                 const [username,password] = input.split(" ");
+                vscode.window.showInformationMessage("Signing in to your account. Please have patience.");
                 const ok:boolean = await this.signInCF(username,password);
                 if(!ok){
                     vscode.window.showErrorMessage("Wrong Username or Password entered! Please try again.");
@@ -262,7 +269,7 @@ export class Puppet{
             this.browser = await puppeteer.launch({headless:true});
         }  
         const page:puppeteer.Page = await this.browser.newPage();
-        vscode.window.showInformationMessage(`Submitting your submission for problem ${inputProblemId}.`);
+        vscode.window.showInformationMessage(`Submitting your submission for problem ${inputProblemId}. Please have patience.`);
         await page.goto("https://codeforces.com/problemset/submit");
         await page.type("#pageContent > form > table > tbody > tr:nth-child(1) > td:nth-child(2) > input",inputProblemId);
         await page.select("#pageContent > form > table > tbody > tr:nth-child(3) > td:nth-child(2) > select",lang);
@@ -276,16 +283,16 @@ export class Puppet{
         await page.goto(`https://codeforces.com/contest/${inputProblemId.substring(0,inputProblemId.length-1)}/my`);
         try {
             while(true){
-                const temp:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
-                if(temp.includes("Running on test") || temp.includes("In queue") || temp.includes("Running")){
+                const temp:string = await page.evaluate(() => document.querySelector(".status-frame-datatable > tbody > tr:nth-child(2) > td:nth-child(6)")?.textContent?.trim()) as string;
+                if(temp === undefined ||temp.includes("Running on test") || temp.includes("In queue") || temp.includes("Running")){
                     setTimeout(()=>{},1000);
                 }else{
                     break;
                 }   
             }    
-            const aaoaa:string = await page.evaluate(() => document.querySelector("#pageContent > div.datatable > div:nth-child(6) > table > tbody > tr:nth-child(2) > td.status-cell.status-small.status-verdict-cell.dark > span")?.textContent) as string;
+            const aaoaa:string = await page.evaluate(() => document.querySelector(".status-frame-datatable > tbody > tr:nth-child(2) > td:nth-child(6)")?.textContent?.trim()) as string;;
             console.log(aaoaa);
-            vscode.window.showInformationMessage(`Your submission to problem ${inputProblemId} has ${aaoaa}.`);
+            vscode.window.showInformationMessage(`Your submission to problem ${inputProblemId} verdicted: ${aaoaa}.`);
         } catch (error) {
             console.log("Stuck in queue.");
         }

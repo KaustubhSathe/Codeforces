@@ -25,14 +25,17 @@ class ExplorerViewItem extends vscode.TreeItem{
     }
 
     get description(): string{
-        if(!!!this.difficulty) {
+        if(this.difficulty===undefined && this.solvedCount===undefined) {
             return "";
         }
-        if(isNaN(this.difficulty)){
-            return `Solved Count: ${this.solvedCount}`;    
+        if(isNaN(this.difficulty as number) && this.solvedCount !== undefined){
+            return `Solved Count: ${this.solvedCount}`;
         }
         return `Difficulty: ${this.difficulty} | Solved Count: ${this.solvedCount}`;
     }  
+
+   
+    
 }
 
 class ExplorerViewItemBuilder {
@@ -109,7 +112,7 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
         return <number>p1.difficulty - <number>p2.difficulty;
     }
     sortBySubmission = (p1:ExplorerViewItem,p2:ExplorerViewItem):number=>{
-        return <number>p1.userSubmissions - <number>p2.userSubmissions;
+        return <number>p1.solvedCount - <number>p2.solvedCount;
     }
     sortingUtil = (inputArray:ExplorerViewItem[]):ExplorerViewItem[]=>{
         if(this.sortByProp === 0){
@@ -157,8 +160,8 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                         .tags(itr.tags)
                         .id(id)
                         .iconPath(
-                            (this.puppet.user.solvedProblems.has(id) ? "../media/greenTick.svg" : 
-                            (this.puppet.user.unsolvedProblems.has(id) ? "../media/redCross.svg" : undefined))
+                            (this.puppet.user.solvedProblems.has(id) ? path.join(__dirname,"..","media","greenTick.svg"): 
+                            (this.puppet.user.unsolvedProblems.has(id) ? path.join(__dirname,"..","media","redCross.png") : undefined))
                         )
                         .difficulty(itr.rating)
                         .contextValue(undefined)
@@ -169,7 +172,7 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                         })
                         .build();
                     });
-                });
+                }).then(elem => this.sortingUtil(elem));
             }else if(element.label === "Difficulty"){
                 const diffs: ExplorerViewItem[] = [];
                 for(let i = 800;i<=3500;i += 100){
@@ -185,10 +188,11 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                     .then(arr => {
                         return arr.map(itr => {
                             const id:string = itr.contestId as number + (itr.index as string);
+                            
                             return (new ExplorerViewItemBuilder(itr.name as string,vscode.TreeItemCollapsibleState.None)).userSubmissions(itr.solvedCount).tags(itr.tags).id(id)
                             .iconPath(
-                                (this.puppet.user.solvedProblems.has(id) ? "../media/greenTick.svg" : 
-                                (this.puppet.user.unsolvedProblems.has(id) ? "../media/redCross.svg" : undefined))
+                                (this.puppet.user.solvedProblems.has(id) ? path.join(__dirname,"..","media","greenTick.svg"): 
+                            (this.puppet.user.unsolvedProblems.has(id) ? path.join(__dirname,"..","media","redCross.png") : undefined))
                             ).difficulty(itr.rating).contextValue(undefined)
                             .command({
                                 command: "codeforces.displayProblem",
@@ -196,7 +200,7 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                                 arguments: [id]
                             }).build();
                         });
-                    });
+                    }).then(elem => this.sortingUtil(elem));
             }else if(element.label === "Recommended Problems"){
                 return recommendedTags.map(itr => {
                     return (new ExplorerViewItemBuilder(itr,vscode.TreeItemCollapsibleState.Collapsed)).userSubmissions(undefined).tags(undefined).id(itr).iconPath(undefined).difficulty(undefined).contextValue(undefined).command(undefined).build();
@@ -208,8 +212,8 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                         const id:string = itr.contestId as number + (itr.index as string);
                         return (new ExplorerViewItemBuilder(itr.name as string,vscode.TreeItemCollapsibleState.None)).userSubmissions(itr.solvedCount).tags(itr.tags).id(id)
                         .iconPath(
-                            (this.puppet.user.solvedProblems.has(id) ? "../media/greenTick.svg" : 
-                            (this.puppet.user.unsolvedProblems.has(id) ? "../media/redCross.svg" : undefined))
+                            (this.puppet.user.solvedProblems.has(id) ? path.join(__dirname,"..","media","greenTick.svg"): 
+                            (this.puppet.user.unsolvedProblems.has(id) ? path.join(__dirname,"..","media","redCross.png") : undefined))
                         ).difficulty(itr.rating).contextValue(undefined)
                         .command({
                             command: "codeforces.displayProblem",
@@ -217,7 +221,7 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                             arguments: [id]
                         }).build();
                     });
-                });
+                }).then(elem => this.sortingUtil(elem));
             }else if(problemTags.includes(element.label)){
                 return this.puppet.getProblemsByTag(element.label)
                 .then(arr => {
@@ -225,8 +229,8 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                         const id:string = itr.contestId as number + (itr.index as string);
                         return (new ExplorerViewItemBuilder(itr.name as string,vscode.TreeItemCollapsibleState.None)).userSubmissions(itr.solvedCount).tags(itr.tags).id(id)
                         .iconPath(
-                            (this.puppet.user.solvedProblems.has(id) ? "../media/greenTick.svg" : 
-                            (this.puppet.user.unsolvedProblems.has(id) ? "../media/redCross.svg" : undefined))
+                            (this.puppet.user.solvedProblems.has(id) ? path.join(__dirname,"..","media","greenTick.svg"): 
+                            (this.puppet.user.unsolvedProblems.has(id) ? path.join(__dirname,"..","media","redCross.png") : undefined))
                         ).difficulty(itr.rating).contextValue(undefined)
                         .command({
                             command: "codeforces.displayProblem",
@@ -234,7 +238,7 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                             arguments: [id]
                         }).build();
                     });
-                });
+                }).then(elem => this.sortingUtil(elem));
             }else if(recommendedTags.includes(element.label)){
                 return this.puppet.getRecommendedProblemsByTag(element.label)
                 .then(arr => {
@@ -242,8 +246,8 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                         const id:string = itr.contestId as number + (itr.index as string);
                         return (new ExplorerViewItemBuilder(itr.name as string,vscode.TreeItemCollapsibleState.None)).userSubmissions(itr.solvedCount).tags(itr.tags).id(id)
                         .iconPath(
-                            (this.puppet.user.solvedProblems.has(id) ? "../media/greenTick.svg" : 
-                            (this.puppet.user.unsolvedProblems.has(id) ? "../media/redCross.svg" : undefined))
+                            (this.puppet.user.solvedProblems.has(id) ? path.join(__dirname,"..","media","greenTick.svg"): 
+                            (this.puppet.user.unsolvedProblems.has(id) ? path.join(__dirname,"..","media","redCross.png") : undefined))
                         ).difficulty(itr.rating).contextValue(undefined)
                         .command({
                             command: "codeforces.displayProblem",
@@ -251,7 +255,7 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                             arguments: [id]
                         }).build();
                     });
-                });
+                }).then(elem => this.sortingUtil(elem));
             }
         }else{
             return Promise.resolve(
@@ -329,18 +333,68 @@ export class CodeforcesDataProvider implements vscode.TreeDataProvider<ExplorerV
                     </head>
                     <body>
                         <div class="header">
-                            <p id="title">H. Binary Median</p>
-                            <p id="time-limit">time limit per test : 2 seconds</p>
-                            <p id="memory-limit">memory limit per test256 megabytes</p>
-                            <p id="input-type">input: standard input</p>
-                            <p id="output-type">output: standard output</p>
+                            <p id="title">${problem.name}</p>
+                            <p id="time-limit">time limit per test : ${problem.timeLimit}</p>
+                            <p id="memory-limit">memory limit per test : ${problem.memoryLimit}</p>
+                            <p id="input-type">input: ${problem.inputType}</p>
+                            <p id="output-type">output: ${problem.outputType}</p>
                         </div>
                         <hr/>
 
                         <div>
                             ${problem.problemStatement}
                         </div>
+                        <hr/>
+
+                        <div>
+                            ${problem.inputSpecification}
+                        </div>
+                        <hr/>
+
+
+                        <div>
+                            ${problem.outputSpecification}
+                        </div>
+                        <hr/>
+
+                        <div>
+                            ${problem.sampleTests}
+                        </div>
+                        <hr/>
+
+                        <div>
+                            ${problem.note}
+                        </div>
+                        <hr/>
+
+
+                        <p><strong>Paste your code here : </strong></p>
+                        <br/>
+                        <textarea id="codebox" rows="10" cols="33" ></textarea>
+                        <br/>
+                        <br/>
+                        <select id="lang">
+                            <option value="54">C++</option>
+                            <option value="60">Java</option>
+                            <option value="31">Python</option>
+                        </select>
+                        <button type="submit" id="submit">Submit</button>
                         
+                        <script>
+                            const vscode = acquireVsCodeApi();
+                            const codeBtn = document.querySelector("#submit");
+                            
+                            
+                            codeBtn.addEventListener("click",function(){
+                                let code = document.querySelector("#codebox").value;
+                                let language = document.querySelector("#lang").value;
+                                vscode.postMessage({
+                                    command: "submit",
+                                    text:code,
+                                    lang: language
+                                });
+                            });
+                        </script>
                     </body>
                 </html>
             `;
