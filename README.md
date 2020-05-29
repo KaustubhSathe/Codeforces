@@ -10,7 +10,7 @@ Solve codeforces problems directly from VS Code.
 -------------------
 ## Quick Start
 
-// GIF to be added here quickstart1
+[![quickStart1.md.png](https://imagehost.imageupload.net/2020/05/29/quickStart1.md.png)](https://www.imageupload.net/image/51jLz)
 
 -------------------
 ## Features
@@ -22,7 +22,7 @@ Solve codeforces problems directly from VS Code.
     - Codeforces : Sign In 
 
 
-// Add a pic here signinpic
+[![signinpic.png](https://imagehost.imageupload.net/2020/05/29/signinpic.png)](https://www.imageupload.net/image/51Reh)
 
 **Browse Problems**
 
@@ -36,11 +36,11 @@ Browse problems by categories :
 
 Problems can be sorted by their difficulty and number of submissions.
 
-// Add a pic here browseproblems
+[![browseproblems.png](https://imagehost.imageupload.net/2020/05/29/browseproblems.png)](https://www.imageupload.net/image/51Lyy)
 
 Your solved problems are marked as green tick and failed submissions as red cross: 
 
-// Add pic here greenticpic
+[![greenpic.png](https://imagehost.imageupload.net/2020/05/29/greenpic.png)](https://www.imageupload.net/image/51AhQ)
 
 
 
