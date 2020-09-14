@@ -22,7 +22,7 @@ Solve codeforces problems directly from VS Code.
     - Codeforces : Sign In 
 
 
-[![signinpic.png](https://imagehost.imageupload.net/2020/05/29/signinpic.png)](https://www.imageupload.net/image/51Reh)
+[![3e90197d76ce3ecc681754a2269312b74f77e2fa.png](https://i.postimg.cc/XYP0gchV/3e90197d76ce3ecc681754a2269312b74f77e2fa.png)](https://postimg.cc/Mn146Rq4)
 
 **Browse Problems**
 
@@ -36,11 +36,11 @@ Browse problems by categories :
 
 Problems can be sorted by their difficulty and number of submissions.
 
-[![browseproblems.png](https://imagehost.imageupload.net/2020/05/29/browseproblems.png)](https://www.imageupload.net/image/51Lyy)
+[![149380e659ed802f7e7c057b1540eb4cb9205b4e.png](https://i.postimg.cc/fLnnGWDp/149380e659ed802f7e7c057b1540eb4cb9205b4e.png)](https://postimg.cc/cKmbYSKB)
 
 Your solved problems are marked as green tick and failed submissions as red cross: 
 
-[![greenpic.png](https://imagehost.imageupload.net/2020/05/29/greenpic.png)](https://www.imageupload.net/image/51AhQ)
+[![46155aa7bb52e862f21764afc6dc4f49ffa1cd65.png](https://i.postimg.cc/GpsngTwv/46155aa7bb52e862f21764afc6dc4f49ffa1cd65.png)](https://postimg.cc/Y4kPh9SS)
 
 
 
