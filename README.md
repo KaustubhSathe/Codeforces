@@ -10,7 +10,7 @@ Solve codeforces problems directly from VS Code.
 -------------------
 ## Quick Start
 
-[![quickStart1.md.png](https://imagehost.imageupload.net/2020/05/29/quickStart1.md.png)](https://www.imageupload.net/image/51jLz)
+[![quickStart1.md.png](https://postimg.cc/hfk6RMWT)](https://postimg.cc/hfk6RMWT)
 
 -------------------
 ## Features
