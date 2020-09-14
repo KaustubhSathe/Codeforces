@@ -10,7 +10,7 @@ Solve codeforces problems directly from VS Code.
 -------------------
 ## Quick Start
 
-![topcover](https://postimg.cc/hfk6RMWT)
+[![3ab98dc522735c1c142ab25c7fb95853d24c1974.png](https://i.postimg.cc/T316mHt7/3ab98dc522735c1c142ab25c7fb95853d24c1974.png)](https://postimg.cc/hfk6RMWT)
 
 -------------------
 ## Features
